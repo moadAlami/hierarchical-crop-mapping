@@ -1,0 +1,6 @@
+#+title: Gharb 2021
+
+* Data
+  - gharb_2021_plots.shp: The original survey polygon (gharb-06-2021) which was split, was used as a reference to manually digitize agricultural plots. The 'culture' column was joined to the final polygon file.
+    Train test was first done manually in qgis by spliting the dataset after looking at the number of pixel per polygon. 
+    The number of pixels in a polygon is roughly area (ha) / 100

@@ -1,6 +1,6 @@
-#+title: Gharb 2021
+# Hierarchical crop mapping
 
-* Data
+## Data
   - gharb_2021_plots.shp: The original survey polygon (gharb-06-2021) which was split, was used as a reference to manually digitize agricultural plots. The 'culture' column was joined to the final polygon file.
     Train test was first done manually in qgis by spliting the dataset after looking at the number of pixel per polygon. 
     The number of pixels in a polygon is roughly area (ha) / 100
@@ -9,13 +9,9 @@
     The TRAIN column is taken from 'gharb_2021_plots.shp'.
     The geometry column was dropped and band columns were converted to int16 to create 'gharb_2021_pts.parquet'
     
-* TODO
-  - [X] Pre-process shapefiles and only keep parquet in the repo
-  - [ ] Correct typo pomegranate
-  - [ ] Add pairplot with NDVI for cereal 
+## TODO
+ - [X] Pre-process shapefiles and only keep parquet in the repo 
+ - [ ] Correct typo pomegranate
+ - [ ] Add pairplot with NDVI for cereal (`sns.pairplot`)
 
-#+BEGIN_SRC python
-import seaborn as sns
-sns.pairplot(irisdata,hue='class',palette='Dark2')
-#+END_SRC
 

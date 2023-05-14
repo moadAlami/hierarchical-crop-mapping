@@ -8,6 +8,10 @@
     Additionally, it has the columns: CROP, GROUP and TRAIN.
     The TRAIN column is taken from 'gharb_2021_plots.shp'.
     The geometry column was dropped and band columns were converted to int16 to create 'gharb_2021_pts.parquet'
+  
+  ### Important
+  - Uploading shp to ee with ESRI:102191 results in a noticeable shift.
+  - gpkg handles projections in a weird mannger. Use shp and then parquet.
     
 ## TODO
  - [X] Pre-process shapefiles and only keep parquet in the repo 

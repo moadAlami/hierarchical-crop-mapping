@@ -20,7 +20,7 @@ def main():
     # ee.Authenticate()
     ee.Initialize()
 
-    poly = ee.FeatureCollection('users/mouad_alami/PhD/gharb_2021_plots')
+    poly = ee.FeatureCollection('users/mouad_alami/PhD/gharb_2021_plots_wgs')
 
     s2 = ee.ImageCollection('COPERNICUS/S2_SR') \
         .filterBounds(poly) \

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import time
 import os
 
-df_path = '../data/gharb_2021_pts.parquet'
+df_path = '../data/ee_sampled_pts_df_2021.parquet'
 df = pd.read_parquet(df_path)
 
 # GridSearch params
@@ -22,9 +22,15 @@ param_svm = {'C': [0.1, 1, 10, 100],
              'gamma': [1, 0.1, 0.01, 0.001],
              'kernel': ['rbf', 'poly', 'sigmoid']}
 
+# param_xgb = {'min_child_weight': [1, 5, 10],
+#              'gamma': [0.5, 1, 1.5, 2, 5],
+#              'subsample': [0.6, 0.8, 1.0],
+#              'colsample_bytree': [0.6, 0.8, 1.0],
+#              'max_depth': [3, 4, 5]}
 
-def preprocess_data(df: pd.DataFrame, target_class: str = 'CROP'):
-    columns_to_drop = ['CROP', 'GROUP', 'TRAIN']
+
+def preprocess_data(df: pd.DataFrame, target_class: str = 'culture'):
+    columns_to_drop = ['culture', 'filiere', 'TRAIN']
     df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
     X_train = df_train.drop(columns=columns_to_drop).values
     y_train = df_train[target_class].values
@@ -42,16 +48,16 @@ def preprocess_data(df: pd.DataFrame, target_class: str = 'CROP'):
     return X_train, y_train, X_test, y_test, classes
 
 
-def pipeline(df: pd.DataFrame, target_class: str = 'CROP'):
+def pipeline(df: pd.DataFrame, target_class: str = 'culture'):
     if not os.path.exists('../models'):
         os.mkdir('../models')
     if not os.path.exists('../fig'):
         os.mkdir('../fig')
     start = time.time()
-    if target_class == 'GROUP':
+    if target_class == 'filiere':
         group = 'groups'
-    elif df.GROUP.unique().shape[0] == 1:
-        group = df.GROUP.unique()[0]
+    elif df.filiere.unique().shape[0] == 1:
+        group = df.filiere.unique()[0]
     else:
         group = 'crops'
     print(f'Processing {group}..')
@@ -93,6 +99,7 @@ def get_best_model(clf, param_grid, x, y):
                          refit=True,
                          cv=3,
                          n_jobs=-1,
+                         scoring='f1_weighted',
                          error_score='raise',
                          verbose=0)
     model.fit(x, y)
@@ -100,11 +107,11 @@ def get_best_model(clf, param_grid, x, y):
     return best_model
 
 
-pipeline(df=df, target_class='GROUP')
+pipeline(df=df, target_class='filiere')
 
-groups = ['Leguminous', 'Fruits', 'Cereals']
+groups = ['legumineuses', 'arboriculture', 'cereales', 'maraicheres']
 for group in groups:
-    group_df = df.query(f'GROUP=="{group}"')
-    pipeline(df=group_df, target_class='CROP')
+    group_df = df.query(f'filiere=="{group}"')
+    pipeline(df=group_df, target_class='culture')
 
-pipeline(df=df, target_class='CROP')
+pipeline(df=df, target_class='culture')

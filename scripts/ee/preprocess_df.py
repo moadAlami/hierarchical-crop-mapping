@@ -29,9 +29,9 @@ def rename_bands(dataframe: pd.DataFrame, tile: str, common_dates: set) -> pd.Da
 
 
 def main():
-    df_30stc = pd.read_csv('../data/sampled30STC.csv', dtype='unicode') \
+    df_30stc = pd.read_csv('../../data/sampled30STC.csv', dtype='unicode') \
         .drop(columns=['system:index', '.geo'])
-    df_29squ = pd.read_csv('../data/sampled29SQU.csv', dtype='unicode') \
+    df_29squ = pd.read_csv('../../data/sampled29SQU.csv', dtype='unicode') \
         .drop(columns=['system:index', '.geo'])
 
     dates = {'29SQU': [], '30STC': []}
@@ -47,6 +47,13 @@ def main():
     df = pd.concat([df_30stc, df_29squ])
     df = df.reset_index().drop('index', axis=1)
 
+    cultures = ['ble tendre', 'orge', 'ble dur', 'avoine',
+                'colza', 'grenadier', 'oranger',
+                'pois chiche', 'feverole',
+                'melon', 'oignon']
+
+    df = df.query('culture.isin(@cultures)')
+
     band_cols = df.drop(columns=['culture', 'filiere', 'TRAIN']).columns
 
     for band_col in band_cols:
@@ -54,7 +61,7 @@ def main():
 
     df['TRAIN'] = df['TRAIN'].astype('int8')
 
-    df.to_parquet('../data/sampled_pts_df_2021.parquet')
+    df.to_parquet('../../data/ee_sampled_pts_df_2021.parquet')
 
 
 if __name__ == '__main__':

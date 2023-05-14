@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import confusion_matrix, f1_score
 import seaborn as sns
@@ -43,7 +43,7 @@ def reflectance_plot(df: pd.DataFrame, column: str) -> None:
              ]
     wave = [.490, .560, .665, .705, .740, .783, .842, .865, 1.610, 2.190]
     bands = df.drop(
-        columns=['CROP', 'GROUP', 'geometry', 'TRAIN']).columns.tolist()
+        columns=['CROP', 'GROUP', 'TRAIN']).columns.tolist()
     labels = df[f'{column}'].unique().tolist()
     H, W = 5, 3
     fig, axs = plt.subplots(H, W, figsize=(W+6, H+6))
@@ -138,7 +138,7 @@ def get_xy(df: pd.DataFrame, target_class: str = 'CROP') \
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    columns_to_drop = ['CROP', 'GROUP', 'TRAIN', 'geometry']
+    columns_to_drop = ['CROP', 'GROUP', 'TRAIN']
     df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
     X_train, y_train = df_train.drop(
         columns=columns_to_drop).values, df_train[target_class].values
@@ -146,7 +146,10 @@ def get_xy(df: pd.DataFrame, target_class: str = 'CROP') \
         columns=columns_to_drop).values, df_test[target_class].values
 
     # scale the data
-    X_train, X_test = X_train / 10_000, X_test / 10_000
+    # X_train, X_test = X_train / 10_000, X_test / 10_000
+    scaler = RobustScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
     # encode the classes
     label_encoder = LabelEncoder()

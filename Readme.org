@@ -7,4 +7,15 @@
   - gharb_2021_pts.gpkg: points originally sampled and inside gharb parcels (not the one mentionned above) and has 140 columns (10 Sentinel-2 bands, 14 dates).
     Additionally, it has the columns: CROP, GROUP and TRAIN.
     The TRAIN column is taken from 'gharb_2021_plots.shp'.
+    The geometry column was dropped and band columns were converted to int16 to create 'gharb_2021_pts.parquet'
     
+* TODO
+ - [X] Pre-process shapefiles and only keep parquet in the repo
+ - [ ] Correct typo pomegranate
+ - [ ] Add pairplot with NDVI for cereal
+
+#+BEGIN_SRC python
+import seaborn as sns
+sns.pairplot(irisdata,hue='class',palette='Dark2')
+#+END_SRC
+

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import time
 import os
 
-df_path = '../data/gharb_pts_2021.parquet'
+df_path = '../data/gharb_2021_pts.parquet'
 df = pd.read_parquet(df_path)
 
 # GridSearch params
@@ -99,9 +99,6 @@ def get_best_model(clf, param_grid, x, y):
     best_model = model.best_estimator_
     return best_model
 
-
-df = df.query('GROUP=="Cereals"')
-pipeline(df, target_class='CROP')
 
 pipeline(df=df, target_class='GROUP')
 

@@ -121,7 +121,7 @@ def ndvi_plot(ndvi: pd.DataFrame, column: str):
     # plt.tight_layout()
 
 
-def get_xy(df: pd.DataFrame, target_class: str = 'CROP') \
+def get_xy(df: pd.DataFrame, target_class: str = 'culture') \
         -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
     """
      Preprocesses a given pandas DataFrame and returns the features and labels of the training and test sets.
@@ -138,7 +138,7 @@ def get_xy(df: pd.DataFrame, target_class: str = 'CROP') \
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    columns_to_drop = ['CROP', 'GROUP', 'TRAIN']
+    columns_to_drop = ['culture', 'filiere', 'TRAIN']
     df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
     X_train, y_train = df_train.drop(
         columns=columns_to_drop).values, df_train[target_class].values

@@ -14,9 +14,6 @@
   - gpkg handles projections in a weird mannger. Use shp and then parquet.
     
 ## TODO
- - [X] Pre-process shapefiles and only keep parquet in the repo 
- - [ ] Correct typo pomegranate
  - [ ] Add pairplot with NDVI for cereal (`sns.pairplot`)
- - [ ] Remove models/ from .gitignore
 
 

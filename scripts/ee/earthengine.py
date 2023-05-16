@@ -22,10 +22,30 @@ def main():
 
     poly = ee.FeatureCollection('users/mouad_alami/PhD/gharb_2021_plots_wgs')
 
+    filterDates = ee.Filter.Or(
+        ee.Filter.date('2020-12-22', '2020-12-23'),
+        ee.Filter.date('2020-12-27', '2020-12-28'),
+        ee.Filter.date('2021-01-03', '2021-01-04'),
+        ee.Filter.date('2021-01-13', '2021-01-14'),
+        ee.Filter.date('2021-01-16', '2021-01-17'),
+        ee.Filter.date('2021-01-18', '2021-01-19'),
+        ee.Filter.date('2021-01-26', '2021-01-27'),
+        ee.Filter.date('2021-02-15', '2021-02-16'),
+        ee.Filter.date('2021-03-14', '2021-03-15'),
+        ee.Filter.date('2021-03-22', '2021-03-23'),
+        ee.Filter.date('2021-03-24', '2021-03-25'),
+        ee.Filter.date('2021-04-13', '2021-04-14'),
+        ee.Filter.date('2021-04-18', '2021-04-19'),
+        ee.Filter.date('2021-04-23', '2021-04-24'),
+        ee.Filter.date('2021-05-06', '2021-05-07'),
+        ee.Filter.date('2021-05-13', '2021-05-14'),
+        ee.Filter.date('2021-05-16', '2021-05-17'),
+        ee.Filter.date('2021-05-18', '2021-05-19'),
+    )
+
     s2 = ee.ImageCollection('COPERNICUS/S2_SR') \
         .filterBounds(poly) \
-        .filterDate('2020-12-20', '2021-05-20') \
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 15))
+        .filter(filterDates)
 
     s2_29_squ = s2.filter(ee.Filter.eq('MGRS_TILE', '29SQU'))
     s2_30_stc = s2.filter(ee.Filter.eq('MGRS_TILE', '30STC'))

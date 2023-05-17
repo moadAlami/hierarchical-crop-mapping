@@ -57,9 +57,11 @@ def main():
     band_cols = df.drop(columns=['culture', 'filiere', 'TRAIN']).columns
 
     for band_col in band_cols:
-        df.loc[:, band_col] = df[band_col].astype('int16')
+        # df.loc[:, band_col] = df[band_col].astype('int16')
+        df[band_col] = df[band_col].astype('int16')
 
-    df.loc[:, 'TRAIN'] = df['TRAIN'].astype('int8')
+    # df.loc[:, 'TRAIN'] = df['TRAIN'].astype('int8')
+    df['TRAIN'] = df['TRAIN'].astype('int8')
 
     df.to_parquet('../../data/ee_sampled_pts_df_2021.parquet')
 

@@ -14,13 +14,13 @@ df_path = '../data/ee_sampled_pts_df_2021.parquet'
 df = pd.read_parquet(df_path)
 
 # GridSearch params
-param_rf = {'n_estimators': [10, 25, 50, 100, 200],
+param_rf = {'n_estimators': [10, 25, 50, 100],
             'criterion': ['gini', 'entropy'],
             'max_depth': [5, 10, 15, 20, 25, None],
             'min_samples_leaf': [1, 2, 5, 10]}
 param_svm = {'C': [0.1, 1, 10, 100],
              'gamma': [1, 0.1, 0.01, 0.001],
-             'kernel': ['rbf', 'poly', 'sigmoid']}
+             'kernel': ['rbf', 'poly']}
 
 # param_xgb = {'min_child_weight': [1, 5, 10],
 #              'gamma': [0.5, 1, 1.5, 2, 5],

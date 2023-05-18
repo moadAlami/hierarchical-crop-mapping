@@ -6,9 +6,9 @@ from sklearn.metrics import confusion_matrix, f1_score
 import seaborn as sns
 from typing import Tuple, List
 import matplotlib.pyplot as plt
-# import keras
-# from keras.callbacks import EarlyStopping
-# from keras.utils import to_categorical
+import keras
+from keras.callbacks import EarlyStopping
+from keras.utils import to_categorical
 
 
 def reflectance_plot(df: pd.DataFrame, column: str) -> None:
@@ -46,8 +46,8 @@ def reflectance_plot(df: pd.DataFrame, column: str) -> None:
         columns=['CROP', 'GROUP', 'TRAIN']).columns.tolist()
     labels = df[f'{column}'].unique().tolist()
     H, W = 5, 3
-    fig, axs = plt.subplots(H, W, figsize=(W+6, H+6))
-    plt.delaxes(axs[H-1, W-1])
+    fig, axs = plt.subplots(H, W, figsize=(W + 6, H + 6))
+    plt.delaxes(axs[H - 1, W - 1])
     c = 0
     idx = 0
     try:
@@ -55,9 +55,9 @@ def reflectance_plot(df: pd.DataFrame, column: str) -> None:
             for h in range(H):
                 for w in range(W):
                     for label in labels:
-                        x = df[df[f'{column}'] == label][bands[c:c+10]]
+                        x = df[df[f'{column}'] == label][bands[c:c + 10]]
                         x.columns = wave[0:10]
-                        x = x.median()/10_000
+                        x = x.median() / 10_000
                         x.plot(kind='line',
                                linestyle='dashdot',
                                label=label.capitalize(),
@@ -164,11 +164,9 @@ def cnet_preprocess(df: pd.DataFrame):
     NDVI = df[non_bands_cols].copy()
     for i in range(14):
         if i == 0:
-            NDVI.loc[:, f'V{i + 1}'] = (df['B7'] -
-                                        df['B3']) / (df['B7'] + df['B3'])
+            NDVI.loc[:, f'V{i + 1}'] = (df['B7'] - df['B3']) / (df['B7'] + df['B3'])
         else:
-            NDVI.loc[:, f'V{i + 1}'] = (df[f'B{i}7'] -
-                                        df[f'B{i}3']) / (df[f'B{i}7'] + df[f'B{i}3'])
+            NDVI.loc[:, f'V{i + 1}'] = (df[f'B{i}7'] - df[f'B{i}3']) / (df[f'B{i}7'] + df[f'B{i}3'])
     NDVI = NDVI.dropna()
     df = df.loc[NDVI.index]
     #

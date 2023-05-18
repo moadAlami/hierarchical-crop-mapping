@@ -11,7 +11,7 @@ def sample_regions(col: ee.ImageCollection, poly: ee.FeatureCollection) -> ee.Fe
     return col.select(bands).map(lambda image: image.rename(new_bands)) \
         .toBands() \
         .sampleRegions(collection=poly,
-                       properties=['culture', 'filiere', 'TRAIN'],
+                       properties=['culture', 'filiere', 'TRAIN', 'G_TRAIN'],
                        scale=10,
                        geometries=True)
 

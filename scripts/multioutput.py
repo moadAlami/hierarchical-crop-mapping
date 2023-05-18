@@ -19,16 +19,18 @@ scaler = RobustScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-mlb = MultiLabelBinarizer()
-y_train = mlb.fit_transform(y_train)
-y_test = mlb.transform(y_test)
+# mlb = MultiLabelBinarizer()
+# y_train = mlb.fit_transform(y_train)
+# y_test = mlb.transform(y_test)
 
-forest = RandomForestClassifier(random_state=1)
-multi_target_forest = MultiOutputClassifier(forest, n_jobs=2)
-multi_target_forest.fit(X_train, y_train)
+# forest = RandomForestClassifier(random_state=1)
+# multi_target_forest = MultiOutputClassifier(forest, n_jobs=2)
+# multi_target_forest.fit(X_train, y_train)
 
-pickle.dump(multi_target_forest, open('../models/multi_target_forest.pickle', 'wb'))
+# pickle.dump(multi_target_forest, open('../models/multi_target_forest.pickle', 'wb'))
+
+multi_target_forest = pickle.load(open('../models/multi_target_forest.pickle', 'rb'))
 
 y_pred = multi_target_forest.predict(X_test)
 
-print(f'Execution time: {time.time()-start} seconds.')
+# print(f'Execution time: {time.time()-start} seconds.')

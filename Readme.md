@@ -14,7 +14,6 @@
   - gpkg handles projections in a weird mannger. Use shp and then parquet.
     
 ## TODO
- - [ ] Add pairplot with NDVI for cereal (`sns.pairplot`)
  - [X] Move common functions to ml_utils
  - [ ] Make custom GridSearch with test dataset instead of cross validation
  - [ ] Train fine crop classifiers

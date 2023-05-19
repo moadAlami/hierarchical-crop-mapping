@@ -1,53 +1,29 @@
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import LabelEncoder, RobustScaler
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix, f1_score
-import seaborn as sns
-from typing import Tuple, List
 import matplotlib.pyplot as plt
-import keras
-from keras.callbacks import EarlyStopping
-from keras.utils import to_categorical
+import numpy as np
+import os
+import pandas as pd
+import pickle
+import seaborn as sns
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, f1_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import LabelEncoder, RobustScaler
+from sklearn.svm import SVC
+from typing import Tuple, List, Any, Dict
+from xgboost import XGBClassifier
+import time
 
 
-def reflectance_plot(df: pd.DataFrame, column: str) -> None:
-    """Create a plot of reflectance values over a range of wavelengths.
-
-    Args:
-        df (pandas.DataFrame): A DataFrame containing the reflectance values for different bands and dates.
-        column (str): The name of the column in `df` containing the labels for each plot.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: If the number of bands in `df` is not a multiple of 10.
-
-    """
-    plt.clf()
-    dates = ['2020-12-22',
-             '2020-12-27',
-             '2021-01-03',
-             '2021-01-18',
-             '2021-01-26',
-             '2021-02-15',
-             '2021-03-14',
-             '2021-03-22',
-             '2021-03-24',
-             '2021-04-13',
-             '2021-04-18',
-             '2021-05-06',
-             '2021-05-18',
-             '2021-05-21'
-             ]
+def reflectance_plot(df: pd.DataFrame, target_class: str, H: int, W: int) -> None:
     wave = [.490, .560, .665, .705, .740, .783, .842, .865, 1.610, 2.190]
-    bands = df.drop(
-        columns=['CROP', 'GROUP', 'TRAIN']).columns.tolist()
-    labels = df[f'{column}'].unique().tolist()
-    H, W = 5, 3
+    bands = df.drop(columns=['culture', 'filiere', 'TRAIN', 'G_TRAIN']).columns
+    dates = []
+    for column in df[bands].columns:
+        date = f'{column[:4]}-{column[4:6]}-{column[6:8]}'
+        if date not in dates:
+            dates.append(date)
+    labels = df[f'{target_class}'].unique().tolist()
     fig, axs = plt.subplots(H, W, figsize=(W + 6, H + 6))
-    plt.delaxes(axs[H - 1, W - 1])
     c = 0
     idx = 0
     try:
@@ -55,7 +31,7 @@ def reflectance_plot(df: pd.DataFrame, column: str) -> None:
             for h in range(H):
                 for w in range(W):
                     for label in labels:
-                        x = df[df[f'{column}'] == label][bands[c:c + 10]]
+                        x = df[df[f'{target_class}'] == label][bands[c:c + 10]]
                         x.columns = wave[0:10]
                         x = x.median() / 10_000
                         x.plot(kind='line',
@@ -77,7 +53,7 @@ def reflectance_plot(df: pd.DataFrame, column: str) -> None:
     plt.tight_layout()
 
 
-def ndvi_plot(ndvi: pd.DataFrame, column: str):
+def ndvi_plot(ndvi: pd.DataFrame, target_class: str, dates: list):
     """Plot the NDVI values for each label in a given column over time.
 
     Args:
@@ -88,25 +64,10 @@ def ndvi_plot(ndvi: pd.DataFrame, column: str):
         None
     """
     plt.clf()
-    dates = ['2020-12-22',
-             '2020-12-27',
-             '2021-01-03',
-             '2021-01-18',
-             '2021-01-26',
-             '2021-02-15',
-             '2021-03-14',
-             '2021-03-22',
-             '2021-03-24',
-             '2021-04-13',
-             '2021-04-18',
-             '2021-05-06',
-             '2021-05-18',
-             '2021-05-21'
-             ]
     fig, ax = plt.subplots(figsize=(10, 6))
-    labels = ndvi[f'{column}'].unique().tolist()
+    labels = ndvi[f'{target_class}'].unique().tolist()
     for label in labels:
-        df = ndvi[ndvi[f'{column}'] == label].median(numeric_only=True)
+        df = ndvi[ndvi[f'{target_class}'] == label].median(numeric_only=True)
         df.plot(label=label, linestyle='dashdot', ax=ax)
         x = [i for i in range(14)]
         y = df.tolist()
@@ -121,8 +82,7 @@ def ndvi_plot(ndvi: pd.DataFrame, column: str):
     # plt.tight_layout()
 
 
-def get_xy(df: pd.DataFrame, target_class: str = 'culture') \
-        -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
+def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
     """
      Preprocesses a given pandas DataFrame and returns the features and labels of the training and test sets.
 
@@ -138,98 +98,23 @@ def get_xy(df: pd.DataFrame, target_class: str = 'culture') \
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    columns_to_drop = ['culture', 'filiere', 'TRAIN']
-    df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
-    X_train, y_train = df_train.drop(
-        columns=columns_to_drop).values, df_train[target_class].values
-    X_test, y_test = df_test.drop(
-        columns=columns_to_drop).values, df_test[target_class].values
-
+    if target_class == 'culture':
+        train = 'TRAIN'
+    elif target_class == 'filiere':
+        train = 'G_TRAIN'
+    columns_to_drop = ['culture', 'filiere', 'TRAIN', 'G_TRAIN']
+    df_train, df_test = df.query(f'{train}==True'), df.query(f'{train}==False')
+    X_train, y_train = df_train.drop(columns=columns_to_drop).values, df_train[target_class].values
+    X_test, y_test = df_test.drop(columns=columns_to_drop).values, df_test[target_class].values
     # scale the data
-    # X_train, X_test = X_train / 10_000, X_test / 10_000
     scaler = RobustScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
-
     # encode the classes
     label_encoder = LabelEncoder()
     y_train = label_encoder.fit_transform(y_train)
     y_test = label_encoder.transform(y_test)
     return X_train, X_test, y_train, y_test, label_encoder
-
-
-def cnet_preprocess(df: pd.DataFrame):
-    non_bands_cols = ['CROP', 'GROUP', 'TRAIN']
-    # calculate NDVI
-    NDVI = df[non_bands_cols].copy()
-    for i in range(14):
-        if i == 0:
-            NDVI.loc[:, f'V{i + 1}'] = (df['B7'] - df['B3']) / (df['B7'] + df['B3'])
-        else:
-            NDVI.loc[:, f'V{i + 1}'] = (df[f'B{i}7'] - df[f'B{i}3']) / (df[f'B{i}7'] + df[f'B{i}3'])
-    NDVI = NDVI.dropna()
-    df = df.loc[NDVI.index]
-    #
-    # X: CNN dataset
-    df_train_B, df_test_B = df.query(
-        'TRAIN == True'), df.query('TRAIN == False')
-    X_train_B = df_train_B.drop(columns=non_bands_cols).values
-    X_test_B = df_test_B.drop(columns=non_bands_cols).values
-    X_train_B, X_test_B = X_train_B.reshape(-1, 14, 10) / \
-        10_000, X_test_B.reshape(-1, 14, 10) / 10_000
-    # X: lstm dataset
-    df_train_VI, df_test_VI = NDVI.query(
-        'TRAIN == True'), NDVI.query('TRAIN == False')
-    X_train_VI = df_train_VI.drop(columns=non_bands_cols).values
-    X_test_VI = df_test_VI.drop(columns=non_bands_cols).values
-    X_train_VI, X_test_VI = X_train_VI.reshape(
-        -1, 14, 1) / 10_000, X_test_VI.reshape(-1, 14, 1) / 10_000
-    # y
-    label_encoder = LabelEncoder()
-    y_train, y_test = df_train_VI['CROP'].values, df_test_VI['CROP'].values
-    y_train = to_categorical(label_encoder.fit_transform(y_train))
-    y_test = to_categorical(label_encoder.transform(y_test))
-    return X_train_B, X_train_VI, X_test_B, X_test_VI, y_train, y_test, label_encoder
-
-
-def cnet_model(X_train_B, X_train_VI, X_test_B, X_test_VI, y_train, y_test, label_encoder):
-    # cnn branch
-    inputs_cnn = keras.layers.Input(X_train_B.shape[1:])
-    branch_cnn = keras.layers.Conv1D(
-        filters=8, kernel_size=1, activation='relu')(inputs_cnn)
-    branch_cnn = keras.layers.MaxPooling1D(pool_size=3)(branch_cnn)
-    # lstm branch
-    inputs_lstm = keras.layers.Input(X_train_VI.shape[1:])
-    branch_lstm = keras.layers.LSTM(
-        units=8, return_sequences=True)(inputs_lstm)
-    # merge branches
-    X = keras.layers.concatenate([branch_cnn, branch_lstm], axis=1)
-    X = keras.layers.Flatten()(X)
-    X = keras.layers.Dense(units=512, activation='relu')(X)
-    X = keras.layers.Dropout(0.4)(X)
-    X = keras.layers.Dense(units=128, activation='relu')(X)
-    X = keras.layers.Dense(units=32, activation='relu')(X)
-    classes = label_encoder.classes_
-    num_classes = len(classes)
-    outputs = keras.layers.Dense(units=num_classes, activation='softmax')(X)
-    model = keras.Model(inputs=[inputs_cnn, inputs_lstm], outputs=outputs)
-    optimizer = keras.optimizers.Adam(
-        learning_rate=.001, decay=.005, beta_1=.8, beta_2=.9)
-    es = EarlyStopping(monitor='val_loss',
-                       mode='min',
-                       patience=10,
-                       restore_best_weights=True)
-    model.compile(optimizer=optimizer,
-                  loss='categorical_crossentropy',
-                  metrics=['categorical_accuracy'])
-    model.fit(x=[X_train_B, X_train_VI],
-              y=y_train,
-              callbacks=es,
-              epochs=500,
-              batch_size=512,
-              validation_data=([X_test_B, X_test_VI], y_test),
-              verbose=0)
-    return model
 
 
 def get_best_model(clf, param_grid: dict, x_train: np.ndarray, y_train: np.ndarray) -> tuple:
@@ -312,9 +197,88 @@ def plot_feature_importances(clf, feature_names: List[str], ax) -> None:
     k = 10  # set k to the number of top features you want to display
     feature_importances = clf.feature_importances_
     top_k_idx = feature_importances.argsort()[-k:]
-
     # Plot the top k feature importances
     ax.barh(feature_names[top_k_idx], feature_importances[top_k_idx])
     ax.set_xlabel("Feature importance")
     ax.set_ylabel("Feature")
     ax.set_title(f"Top {k} feature importances")
+
+
+def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
+    start = time.time()
+    dirs = ['models', 'fig']
+    for dir in dirs:
+        path = os.path.abspath(dir)
+        if input(f'Save {dir} in {path} (y/N) in ["N", ""]'):
+            path = input(f'Output directory for {dir}: ')
+        if not os.path.exists(path):
+            os.mkdir(path)
+    if target_class == 'filiere':
+        group = 'groups'
+    elif df.filiere.unique().shape[0] == 1:
+        group = df.filiere.unique()[0]
+    else:
+        group = 'crops'
+    print(f'Processing {group}..')
+    X_train, y_train, X_test, y_test, label_encoder = get_xy(df, target_class)
+    classes = label_encoder.classes_
+    # best classifiers
+    classifiers = [SVC(), RandomForestClassifier(), XGBClassifier()]
+    param_rf = {'n_estimators': [10, 25, 50, 100],
+                'criterion': ['gini', 'entropy'],
+                'max_depth': [5, 10, 15, 20, 25, None],
+                'min_samples_leaf': [1, 2, 5, 10]}
+    param_svm = {'C': [0.1, 1, 10, 100],
+                 'gamma': [1, 0.1, 0.01, 0.001],
+                 'kernel': ['rbf', 'poly']}
+    param_xgb = {'min_child_weight': [1, 5, 10],
+                 'gamma': [0.5, 1, 1.5, 2, 5],
+                 'subsample': [0.6, 0.8, 1.0],
+                 'colsample_bytree': [0.6, 0.8, 1.0],
+                 'max_depth': [3, 4, 5]}
+    param_grids = [param_svm, param_rf, param_xgb]
+    fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
+    for classifier, param_grid in zip(classifiers, param_grids):
+        clf = get_best_model(classifier, param_grid, X_train, y_train)
+        model_name = f'../models/{group}_{clf.__class__.__name__}.pickle'
+        pickle.dump(clf, open(model_name, 'wb'))
+        ax = axs[classifiers.index(classifier)]
+        plot_cm(clf, ax, X_test, y_test, classes, normalize='true')
+        plt.savefig(f'../fig/{group}_cm.png', dpi=150)
+    end = time.time()
+    exec_time = int(round(end - start, 0))
+    print(f'\tDone! ({exec_time} seconds)')
+
+
+def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict[str, Any], label_encoders: Dict[str, LabelEncoder]) -> Tuple[List[str], List[str]]:
+    """
+    Predicts broad and fine classes for given input data using a hierarchical approach.
+
+    Args:
+        x: Input array
+        broad_classifier: The broad classifier used for prediction.
+        fine_classifiers: A dictionary of fine classifiers used for prediction, where the keys are the broad class names.
+        label_encoders: A dictionary of label encoders , where the keys are the broad class names.
+
+    Returns:
+        A tuple containing:
+            - List of broad crop classes
+            - List of fine crop classes
+    """
+    broad_classes = []
+    fine_classes = []
+    for elem in x:
+        broad_class = broad_classifier.predict(elem.reshape(-1, x.shape[1]))
+        broad_class = label_encoders['groups'].inverse_transform(broad_class)[0]
+        if broad_class == 'oleagineuses':
+            fine_class = 'colza'
+        # elif broad_class == 'cereales':
+        #     x_B = x.reshape(-1, 14, 10)
+        #     x_VI = (x_B[:, :, 6] - x_B[:, :, 2]) / (x_B[:, :, 6] + x_B[:, :, 2])
+        #     fine_class = fine_classifiers[broad_class].predict([x_B, x_VI], verbose=0)
+        else:
+            fine_class = fine_classifiers[broad_class].predict(elem.reshape(-1, x.shape[1]))
+            fine_class = label_encoders[broad_class].inverse_transform(fine_class)[0]
+        broad_classes.append(broad_class)
+        fine_classes.append(fine_class)
+    return broad_classes, fine_classes

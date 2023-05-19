@@ -1,12 +1,9 @@
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, RobustScaler
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn.multioutput import MultiOutputClassifier
+# from sklearn.ensemble import RandomForestClassifier
 import pickle
-import time
 
-start = time.time()
-# tf.random.set_seed(99)
 target_class: str = 'filiere'
 df = pd.read_parquet('../data/ee_sampled_pts_df_2021.parquet')
 
@@ -32,5 +29,3 @@ X_test = scaler.transform(X_test)
 multi_target_forest = pickle.load(open('../models/multi_target_forest.pickle', 'rb'))
 
 y_pred = multi_target_forest.predict(X_test)
-
-# print(f'Execution time: {time.time()-start} seconds.')

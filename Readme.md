@@ -15,5 +15,5 @@
     
 ## TODO
  - [ ] Add pairplot with NDVI for cereal (`sns.pairplot`)
-
-
+ - [ ] Move common functions to ml_utils
+ - [ ] Make custom GridSearch with test dataset instead of cross validation

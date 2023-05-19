@@ -3,6 +3,7 @@ from sklearn.preprocessing import RobustScaler, LabelEncoder
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from xgboost import XGBClassifier
 from sklearn.metrics import f1_score, confusion_matrix
 import seaborn as sns
 import pickle
@@ -22,16 +23,20 @@ param_svm = {'C': [0.1, 1, 10, 100],
              'gamma': [1, 0.1, 0.01, 0.001],
              'kernel': ['rbf', 'poly']}
 
-# param_xgb = {'min_child_weight': [1, 5, 10],
-#              'gamma': [0.5, 1, 1.5, 2, 5],
-#              'subsample': [0.6, 0.8, 1.0],
-#              'colsample_bytree': [0.6, 0.8, 1.0],
-#              'max_depth': [3, 4, 5]}
+param_xgb = {'min_child_weight': [1, 5, 10],
+             'gamma': [0.5, 1, 1.5, 2, 5],
+             'subsample': [0.6, 0.8, 1.0],
+             'colsample_bytree': [0.6, 0.8, 1.0],
+             'max_depth': [3, 4, 5]}
 
 
 def preprocess_data(df: pd.DataFrame, target_class: str = 'culture'):
-    columns_to_drop = ['culture', 'filiere', 'TRAIN']
-    df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
+    if target_class == 'culture':
+        train = 'TRAIN'
+    elif target_class == 'filiere':
+        train = 'G_TRAIN'
+    columns_to_drop = ['filiere', 'culture', 'TRAIN', 'G_TRAIN']
+    df_train, df_test = df.query(f'{train}==True'), df.query(f'{train}==False')
     X_train = df_train.drop(columns=columns_to_drop).values
     y_train = df_train[target_class].values
     X_test = df_test.drop(columns=columns_to_drop).values
@@ -63,8 +68,8 @@ def pipeline(df: pd.DataFrame, target_class: str = 'culture'):
     print(f'Processing {group}..')
     X_train, y_train, X_test, y_test, classes = preprocess_data(df, target_class)
     # best classifiers
-    classifiers = [SVC(), RandomForestClassifier()]
-    param_grids = [param_svm, param_rf]
+    classifiers = [SVC(), RandomForestClassifier(), XGBClassifier()]
+    param_grids = [param_svm, param_rf, param_xgb]
     fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
     for classifier, param_grid in zip(classifiers, param_grids):
         clf = get_best_model(classifier, param_grid, X_train, y_train)
@@ -109,9 +114,9 @@ def get_best_model(clf, param_grid, x, y):
 
 pipeline(df=df, target_class='filiere')
 
-groups = ['legumineuses', 'arboriculture', 'cereales', 'maraicheres']
-for group in groups:
-    group_df = df.query(f'filiere=="{group}"')
-    pipeline(df=group_df, target_class='culture')
+# groups = ['legumineuses', 'arboriculture', 'cereales', 'maraicheres']
+# for group in groups:
+#     group_df = df.query(f'filiere=="{group}"')
+#     pipeline(df=group_df, target_class='culture')
 
-pipeline(df=df, target_class='culture')
+# pipeline(df=df, target_class='culture')

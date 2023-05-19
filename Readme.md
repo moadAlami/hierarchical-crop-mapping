@@ -15,5 +15,5 @@
     
 ## TODO
  - [X] Move common functions to ml_utils
- - [ ] Make custom GridSearch with test dataset instead of cross validation
+ - [X] Make custom GridSearch with test dataset instead of cross validation
  - [ ] Train fine crop classifiers

@@ -1,3 +1,4 @@
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -6,7 +7,6 @@ import pickle
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, f1_score
-from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.svm import SVC
 from typing import Tuple, List, Any, Dict
@@ -117,37 +117,6 @@ def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray,
     return X_train, X_test, y_train, y_test, label_encoder
 
 
-def get_best_model(clf, param_grid: dict, x_train: np.ndarray, y_train: np.ndarray) -> tuple:
-    """
-    Trains and tunes a classification model using grid search cross-validation.
-
-    Args:
-        clf (estimator): An estimator object implementing 'fit' and 'predict'.
-        param_grid (dict): A dictionary with parameters names (string) as keys and lists of parameter settings to try
-            as values. The parameter settings are combinations of values to be tested by the randomized search.
-        x_train (np.ndarray): Array-like object of shape (n_samples, n_features) containing the input features.
-        y_train (np.ndarray): Array-like object of shape (n_samples,) containing the target values.
-
-    Returns:
-        tuple: A tuple containing the best estimator and its corresponding parameters, as determined by the randomized
-         search.
-
-    Raises:
-        ValueError: If the input estimator is not a classifier.
-
-    """
-    model = GridSearchCV(estimator=clf,
-                         param_grid=param_grid,
-                         refit=True,
-                         cv=3,
-                         n_jobs=-1,
-                         verbose=0)
-    model.fit(x_train, y_train)
-    best_model = model.best_estimator_
-    best_params = model.best_params_
-    return best_model, best_params
-
-
 def plot_cm(clf, ax, x_test: np.ndarray, y_test: np.ndarray, labels: list, normalize: str = None) -> None:
     """
     Plots a confusion matrix for the given classifier on the test data.
@@ -239,7 +208,11 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     param_grids = [param_svm, param_rf, param_xgb]
     fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
     for classifier, param_grid in zip(classifiers, param_grids):
-        clf = get_best_model(classifier, param_grid, X_train, y_train)
+        clf = custom_tune(x_train=X_train, x_test=X_test,
+                          y_train=y_train,
+                          y_test=y_test,
+                          model=classifier,
+                          verbose=False)
         model_name = f'../models/{group}_{clf.__class__.__name__}.pickle'
         pickle.dump(clf, open(model_name, 'wb'))
         ax = axs[classifiers.index(classifier)]
@@ -282,3 +255,40 @@ def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict
         broad_classes.append(broad_class)
         fine_classes.append(fine_class)
     return broad_classes, fine_classes
+
+
+def custom_tune(x_train, x_test, y_train, y_test, model, grid_params, verbose: bool = False):
+    start = time.time()
+    params = []
+    f1_list = []
+    model_name = model().__class__.__name__
+    keys = grid_params.keys()
+    values = grid_params.values()
+    num_combinations = 1
+    for value_list in values:
+        num_combinations *= len(value_list)
+    print(f'{time.strftime("%H:%M:%S")} | {model_name} | Fitting for {num_combinations} combinations')
+    combinations = itertools.product(*values)
+    for args in combinations:
+        kwargs = dict(zip(keys, args))
+        clf = model(**kwargs)
+        params.append(kwargs)
+        clf.fit(x_train, y_train)
+        y_pred = clf.predict(x_test)
+        f1_list.append(f1_score(y_true=y_test, y_pred=y_pred))
+        if verbose:
+            print(f'{model_name} | {kwargs}')
+        if verbose:
+            print(f'F1-score {f1_score(y_true=y_test, y_pred=y_pred)}\n')
+    max_f1_index = f1_list.index(max(f1_list))
+    print(20 * '-')
+    print(f'Best params: {params[max_f1_index]}')
+    execution_time = time.time() - start
+    if execution_time > 3600:
+        print_time = f'{execution_time / 60 / 60}h'
+    elif 60 < execution_time < 3600:
+        print_time = f'{execution_time / 60}m'
+    elif execution_time < 60:
+        print_time = f'{execution_time}s'
+    print(f'Max f1 score: {max(f1_list)} ({print_time})')
+    return model(**params[max_f1_index])

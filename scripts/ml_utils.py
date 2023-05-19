@@ -1,5 +1,7 @@
 import itertools
+from functools import partial
 import matplotlib.pyplot as plt
+import multiprocessing
 import numpy as np
 import os
 import pandas as pd
@@ -175,13 +177,13 @@ def plot_feature_importances(clf, feature_names: List[str], ax) -> None:
 
 def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     start = time.time()
-    dirs = ['models', 'fig']
-    for dir in dirs:
-        path = os.path.abspath(f'../{dir}')
-        if input(f'Save {dir} in {path} (y/N)') in ["N", ""]:
-            path = input(f'Output directory for {dir}: ')
-        if not os.path.exists(path):
-            os.mkdir(path)
+    root_path = os.path.abspath('../')
+    if input(f'Save models in figures in {root_path}/ (y/N)') in ["N", ""]:
+        root_path = input('Root directory for models and figures: ')
+    for dir in ['models', 'fig']:
+        dir_path = os.path.join(root_path, dir)
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
     if target_class == 'filiere':
         group = 'groups'
     elif df.filiere.unique().shape[0] == 1:
@@ -196,7 +198,8 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     param_rf = {'n_estimators': [10, 25, 50, 100],
                 'criterion': ['gini', 'entropy'],
                 'max_depth': [5, 10, 15, 20, 25, None],
-                'min_samples_leaf': [1, 2, 5, 10]}
+                'min_samples_leaf': [1, 2, 5, 10],
+                'random_state': [1]}
     param_svm = {'C': [0.1, 1, 10, 100],
                  'gamma': [1, 0.1, 0.01, 0.001],
                  'kernel': ['rbf', 'poly']}
@@ -204,22 +207,29 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
                  'gamma': [0.5, 1, 1.5, 2, 5],
                  'subsample': [0.6, 0.8, 1.0],
                  'colsample_bytree': [0.6, 0.8, 1.0],
-                 'max_depth': [3, 4, 5]}
+                 'max_depth': [3, 4, 5],
+                 'random_state': [1]}
     param_grids = [param_svm, param_rf, param_xgb]
     fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
     for classifier, param_grid in zip(classifiers, param_grids):
-        clf = custom_tune(x_train=X_train, x_test=X_test,
-                          y_train=y_train, y_test=y_test,
-                          model=classifier, grid_params=param_grid, verbose=False)
-        model_name = f'../models/{group}_{clf.__class__.__name__}.pickle'
-        pickle.dump(clf, open(model_name, 'wb'))
+        if classifier == XGBClassifier:
+            clf = custom_tune_v1(x_train=X_train, x_test=X_test,
+                                 y_train=y_train, y_test=y_test,
+                                 model=classifier, grid_params=param_grid, verbose=False)
+        else:
+            clf = custom_tune_v2(x_train=X_train, x_test=X_test,
+                                 y_train=y_train, y_test=y_test,
+                                 model=classifier, grid_params=param_grid, verbose=False)
+        model_name = f'models/{group}_{clf.__class__.__name__}.pickle'
+        pickle.dump(clf, open(os.path.join(root_path, model_name), 'wb'))
         ax = axs[classifiers.index(classifier)]
         plot_cm(clf=clf, ax=ax, x_test=X_test, y_test=y_test, labels=classes, normalize='true')
-        plt.savefig(f'../fig/{group}_cm.png', dpi=150)
+        fig_name = f'fig/{group}_cm.png'
+        plt.savefig(os.path.join(root_path, fig_name), dpi=150)
         print()
     end = time.time()
     exec_time = int(round(end - start, 0))
-    print(f'\tDone! ({exec_time} seconds)')
+    print(f'Done! ({exec_time} seconds)')
 
 
 def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict[str, Any], label_encoders: Dict[str, LabelEncoder]) -> Tuple[List[str], List[str]]:
@@ -256,7 +266,64 @@ def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict
     return broad_classes, fine_classes
 
 
-def custom_tune(x_train, x_test, y_train, y_test, model, grid_params, verbose: bool = False):
+def process_combination(args, keys, model, x_train, y_train, x_test, y_test):
+    kwargs = dict(zip(keys, args))
+    clf = model(**kwargs)
+    clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    f1 = f1_score(y_true=y_test, y_pred=y_pred, average='weighted')
+    return kwargs, f1
+
+
+def custom_tune_v2(x_train, x_test, y_train, y_test, model, grid_params, verbose: bool = False):
+    '''
+    Custom grid search function. Uses multiprocessing.
+    '''
+    start = time.time()
+    params = []
+    f1_list = []
+    model_name = model().__class__.__name__
+    keys = list(grid_params.keys())  # Convert keys to a list
+    values = grid_params.values()
+    num_combinations = 1
+    for value_list in values:
+        num_combinations *= len(value_list)
+    print(f'{time.strftime("%H:%M:%S")} | {model_name} | Fitting for {num_combinations} combinations')
+    combinations = itertools.product(*values)
+
+    # Create a pool of worker processes
+    pool = multiprocessing.Pool()
+    worker_func = partial(process_combination, keys=keys, model=model, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
+
+    # Map the worker function to combinations and collect results
+    results = pool.map(worker_func, combinations)
+
+    # Extract params and f1 scores from results
+    params, f1_list = zip(*results)
+
+    max_f1_index = f1_list.index(max(f1_list))
+    print(20 * '-')
+    print(f'Best params: {params[max_f1_index]}')
+
+    execution_time = time.time() - start
+    if execution_time > 3600:
+        print_time = f'{execution_time / 60 / 60}h'
+    elif 60 < execution_time < 3600:
+        print_time = f'{execution_time / 60}m'
+    elif execution_time < 60:
+        print_time = f'{execution_time}s'
+    print(f'Max f1 score: {max(f1_list)} ({print_time})')
+
+    best_model = model(**params[max_f1_index])
+    best_model.fit(x_train, y_train)
+
+    return best_model
+
+
+def custom_tune_v1(x_train, x_test, y_train, y_test, model, grid_params, verbose: bool = False):
+    '''
+    Custom grid search function. Does not use multiprocessing.
+    '''
     start = time.time()
     params = []
     f1_list = []
@@ -274,11 +341,11 @@ def custom_tune(x_train, x_test, y_train, y_test, model, grid_params, verbose: b
         params.append(kwargs)
         clf.fit(x_train, y_train)
         y_pred = clf.predict(x_test)
-        f1_list.append(f1_score(y_true=y_test, y_pred=y_pred))
+        f1_list.append(f1_score(y_true=y_test, y_pred=y_pred, average='weighted'))
         if verbose:
             print(f'{model_name} | {kwargs}')
         if verbose:
-            print(f'F1-score {f1_score(y_true=y_test, y_pred=y_pred)}\n')
+            print(f'F1-score {f1_score(y_true=y_test, y_pred=y_pred, average="weighted")}\n')
     max_f1_index = f1_list.index(max(f1_list))
     print(20 * '-')
     print(f'Best params: {params[max_f1_index]}')

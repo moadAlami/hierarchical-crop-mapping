@@ -177,8 +177,8 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     start = time.time()
     dirs = ['models', 'fig']
     for dir in dirs:
-        path = os.path.abspath(dir)
-        if input(f'Save {dir} in {path} (y/N) in ["N", ""]'):
+        path = os.path.abspath(f'../{dir}')
+        if input(f'Save {dir} in {path} (y/N)') in ["N", ""]:
             path = input(f'Output directory for {dir}: ')
         if not os.path.exists(path):
             os.mkdir(path)
@@ -189,10 +189,10 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     else:
         group = 'crops'
     print(f'Processing {group}..')
-    X_train, y_train, X_test, y_test, label_encoder = get_xy(df, target_class)
+    X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
     classes = label_encoder.classes_
     # best classifiers
-    classifiers = [SVC(), RandomForestClassifier(), XGBClassifier()]
+    classifiers = [SVC, RandomForestClassifier, XGBClassifier]
     param_rf = {'n_estimators': [10, 25, 50, 100],
                 'criterion': ['gini', 'entropy'],
                 'max_depth': [5, 10, 15, 20, 25, None],
@@ -209,15 +209,14 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
     for classifier, param_grid in zip(classifiers, param_grids):
         clf = custom_tune(x_train=X_train, x_test=X_test,
-                          y_train=y_train,
-                          y_test=y_test,
-                          model=classifier,
-                          verbose=False)
+                          y_train=y_train, y_test=y_test,
+                          model=classifier, grid_params=param_grid, verbose=False)
         model_name = f'../models/{group}_{clf.__class__.__name__}.pickle'
         pickle.dump(clf, open(model_name, 'wb'))
         ax = axs[classifiers.index(classifier)]
-        plot_cm(clf, ax, X_test, y_test, classes, normalize='true')
+        plot_cm(clf=clf, ax=ax, x_test=X_test, y_test=y_test, labels=classes, normalize='true')
         plt.savefig(f'../fig/{group}_cm.png', dpi=150)
+        print()
     end = time.time()
     exec_time = int(round(end - start, 0))
     print(f'\tDone! ({exec_time} seconds)')
@@ -291,4 +290,6 @@ def custom_tune(x_train, x_test, y_train, y_test, model, grid_params, verbose: b
     elif execution_time < 60:
         print_time = f'{execution_time}s'
     print(f'Max f1 score: {max(f1_list)} ({print_time})')
-    return model(**params[max_f1_index])
+    best_model = model(**params[max_f1_index])
+    best_model .fit(x_train, y_train)
+    return best_model

@@ -178,8 +178,8 @@ def plot_feature_importances(clf, feature_names: List[str], ax) -> None:
 def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     start = time.time()
     root_path = os.path.abspath('../')
-    if input(f'Save models in figures in {root_path}/ (y/N)') in ["N", ""]:
-        root_path = input('Root directory for models and figures: ')
+    # if input(f'Save models in figures in {root_path}/ (y/N)') in ["N", ""]:
+    #     root_path = input('Root directory for models and figures: ')
     for dir in ['models', 'fig']:
         dir_path = os.path.join(root_path, dir)
         if not os.path.exists(dir_path):

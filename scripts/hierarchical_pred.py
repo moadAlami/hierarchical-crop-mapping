@@ -14,13 +14,13 @@ _, X, _, y, crops_le = get_xy(df=df, target_class='culture')
 classes = broad_le.classes_
 clf_groups = pickle.load(open('../models/groups_SVC.pickle', 'rb'))
 
-fine_classifiers = {}
 label_encoders = {}
-for f in ['groups', 'arboriculture', 'cereales', 'legumineuses', 'maraicheres']:
-    model_path = f'../models/{f}_RandomForestClassifier.pickle'
-    fine_classifiers[f] = pickle.load(open(model_path, 'rb'))
+fine_classifiers = {}
+for f in ['arboriculture', 'cereales', 'legumineuses', 'maraicheres']:
     *_, label_encoders[f] = get_xy(df=df.query('filiere==@f'), target_class='culture')
+    fine_classifiers[f] = pickle.load(open(f'../models/{f}_RandomForestClassifier.pickle', 'rb'))
 
+label_encoders['groups'] = broad_le
 
 y_pred_broad, y_pred_fine = hierarchical_pred(X, clf_groups, fine_classifiers, label_encoders)
 y_pred = crops_le.transform(y_pred_fine)

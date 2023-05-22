@@ -12,8 +12,22 @@
   ### Important
   - Uploading shp to ee with ESRI:102191 results in a noticeable shift.
   - gpkg handles projections in a weird mannger. Use shp and then parquet.
+
+## Notes
+- It can be more efficient to train and fine tune deep learning models than classical machine learning models because deep learning models run on GPUs with large batch size.
+- Misclassifications in group classification have major repercussions on fine crop classification. This is more so obvious when there are omission errors in an under represented broad class.
+- In earthengine, filtering the collection with < 1% cloud cover lowers the accuracy. Dates had to be identiafied manually.
+- SVM classification with kernel 'sigmoid' takes too long in comparison with 'rbf' and 'poly' and it has the lowest accuracy.
+- XGBoost takes the longest, SVM is close behind, and RF takes much lower (even with more fits than SVM).
+- It should be noted that the problem of a hierarchy that does not respect the parent child relationship is absent. Unlike a study where multi-label classes were assigned, our scheme uses a conditional approach that guarantees the cohesiveness of thematic classes.
+- The initial train test split is crucial for a successful pipeline run. It is important to split the polygons rather than the pixels to avoid spatial autocorrelation. 
     
 ## TODO
  - [X] Move common functions to ml_utils
  - [X] Make custom GridSearch with test dataset instead of cross validation
- - [ ] Train fine crop classifiers
+ - [X] Train fine crop classifiers
+ - [ ] For hierarchical_pred, perform a broad class classification, then get the index of each class and apply the appropriate fine classifier. Compare execution time with iterating over each pixel.
+
+### Later
+ - [ ] Automatic train test split that ensures a good ratio of train/test while avoiding spatial autocorrelation.
+ - [ ] Automatic identification of the optimal dates

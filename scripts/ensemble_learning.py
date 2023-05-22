@@ -5,15 +5,16 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import VotingClassifier
 import pickle
 
-target_class: str = 'filiere'
+target_class: str = 'culture'
 df = pd.read_parquet('../data/ee_sampled_pts_df_2021.parquet')
+to_classify = 'maraicheres'
+df = df.query('filiere==@to_classify')
 
-
-X_train, y_train, X_test, y_test, label_encoder = get_xy(df, target_class)
+X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
 classes = label_encoder.classes_
-svm = pickle.load(open('../models/groups_SVC.pickle', 'rb'))
-rf = pickle.load(open('../models/groups_RandomForestClassifier.pickle', 'rb'))
-xgb = pickle.load(open('../models/groups_XGBClassifier.pickle', 'rb'))
+svm = pickle.load(open(f'../models/{to_classify}_SVC.pickle', 'rb'))
+rf = pickle.load(open(f'../models/{to_classify}_RandomForestClassifier.pickle', 'rb'))
+xgb = pickle.load(open(f'../models/{to_classify}_XGBClassifier.pickle', 'rb'))
 eclf = VotingClassifier(estimators=[('svm', svm),
                                     ('rf', rf),
                                     ('xgb', xgb)],

@@ -22,13 +22,14 @@
 - It should be noted that the problem of a hierarchy that does not respect the parent child relationship is absent. Unlike a study where multi-label classes were assigned, our scheme uses a conditional approach that guarantees the cohesiveness of thematic classes.
 - The initial train test split is crucial for a successful pipeline run. It is important to split the polygons rather than the pixels to avoid spatial autocorrelation. 
 - Look at the classification report and individual f1-scores. Don't stop at the confusion matrix.
+- There is a major problem with 'orge'. Removing raises the accuracy to +90% for 'ble tendre', 'ble dur' and 'avoine'.
     
 ## TODO
  - [X] Move common functions to ml_utils
  - [X] Make custom GridSearch with test dataset instead of cross validation
  - [X] Train fine crop classifiers
- - [ ] For hierarchical_pred, perform a broad class classification, then get the index of each class and apply the appropriate fine classifier. Compare execution time with iterating over each pixel.
+ - [X] For hierarchical_pred, perform a broad class classification, then get the index of each class and apply the appropriate fine classifier. Compare execution time with iterating over each pixel.
+ - [ ] Automatic train test split that ensures a good ratio of train/test while avoiding spatial autocorrelation.
 
 ### Later
- - [ ] Automatic train test split that ensures a good ratio of train/test while avoiding spatial autocorrelation.
  - [ ] Automatic identification of the optimal dates

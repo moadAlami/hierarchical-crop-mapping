@@ -10,6 +10,8 @@ gdf = gdf.drop(columns=['G_TRAIN', 'TRAIN'])
 
 def split(gdf):
     sum_area: float = gdf.AREA.sum()
+    if sum_area == 0:
+        return None
     cond = False
     while not cond:
         frac: float = round(random.uniform(.6, .95), 2)

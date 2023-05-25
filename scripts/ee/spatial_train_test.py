@@ -34,7 +34,14 @@ def split(gdf):
     return new_gdf
 
 
-cultures = ['ble tendre', 'orge', 'ble dur', 'avoine', 'colza', 'grenadier', 'oranger', 'pois chiche', 'feverole', 'melon', 'oignon']
+# cultures = ['ble tendre', 'orge', 'ble dur', 'avoine', 'colza', 'grenadier', 'oranger', 'pois chiche', 'feverole', 'melon', 'oignon']
+
+# these crops result in an infinite loop
+to_drop = ['betterave', 'feve', 'haricot']
+gdf = gdf.drop(gdf.query('culture.isin(@to_drop)').index)
+
+cultures = gdf.culture.value_counts()[gdf.culture.value_counts() > 2].index
+
 
 d: dict = {}
 for culture in cultures:

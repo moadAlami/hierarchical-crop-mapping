@@ -40,6 +40,6 @@ for culture in cultures:
 
 full_df = pd.concat([d[i] for i in d])
 full_df = full_df.drop('AREA', axis=1)
-out_gdf = r'../data/gharb_2021_plots_wgs_v2.shx'
+out_gdf = r'../data/gharb_2021_plots_wgs_v2.shp'
 
 full_df.to_file(out_gdf, encoding='utf8')

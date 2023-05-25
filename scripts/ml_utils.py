@@ -18,7 +18,7 @@ import time
 
 def reflectance_plot(df: pd.DataFrame, target_class: str, H: int, W: int) -> None:
     wave = [.490, .560, .665, .705, .740, .783, .842, .865, 1.610, 2.190]
-    bands = df.drop(columns=['culture', 'filiere', 'TRAIN', 'G_TRAIN']).columns
+    bands = df.drop(columns=['culture', 'filiere', 'TRAIN']).columns
     dates = []
     for column in df[bands].columns:
         date = f'{column[:4]}-{column[4:6]}-{column[6:8]}'
@@ -100,11 +100,8 @@ def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray,
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    if target_class == 'culture':
-        train = 'TRAIN'
-    elif target_class == 'filiere':
-        train = 'G_TRAIN'
-    columns_to_drop = ['culture', 'filiere', 'TRAIN', 'G_TRAIN']
+    train = 'TRAIN'
+    columns_to_drop = ['culture', 'filiere', 'TRAIN']
     df_train, df_test = df.query(f'{train}==True'), df.query(f'{train}==False')
     X_train, y_train = df_train.drop(columns=columns_to_drop).values, df_train[target_class].values
     X_test, y_test = df_test.drop(columns=columns_to_drop).values, df_test[target_class].values

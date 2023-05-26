@@ -1,4 +1,7 @@
 import ee
+import geopandas as gpd
+import json
+import time
 
 
 def sample_regions(col: ee.ImageCollection, poly: ee.FeatureCollection) -> ee.FeatureCollection:
@@ -11,7 +14,7 @@ def sample_regions(col: ee.ImageCollection, poly: ee.FeatureCollection) -> ee.Fe
     return col.select(bands).map(lambda image: image.rename(new_bands)) \
         .toBands() \
         .sampleRegions(collection=poly,
-                       properties=['culture', 'filiere', 'TRAIN', 'G_TRAIN'],
+                       properties=['culture', 'filiere', 'TRAIN'],
                        scale=10,
                        geometries=True)
 
@@ -20,7 +23,10 @@ def main():
     # ee.Authenticate()
     ee.Initialize()
 
-    poly = ee.FeatureCollection('users/mouad_alami/PhD/gharb_2021_plots_wgs')
+    poly_path = r'../../data/gharb_2021_plots_wgs_v2.shp'
+    poly = gpd.read_file(poly_path, encoding='utf8')
+    poly = poly.to_json()
+    poly = ee.FeatureCollection(json.loads(poly))
 
     filterDates = ee.Filter.Or(
         ee.Filter.date('2020-12-22', '2020-12-23'),
@@ -53,14 +59,14 @@ def main():
     img_cols = [s2_29_squ, s2_30_stc]
     for img_col in img_cols:
         sampled = sample_regions(img_col, poly)
-
         filename = f'sampled{img_col.first().get("MGRS_TILE").getInfo()}'
 
         task = ee.batch.Export.table.toDrive(
             collection=sampled,
             description=filename,
             fileNamePrefix=filename,
-            fileFormat='CSV'
+            fileFormat='CSV',
+            driveFolder=time.strftime('%Y-%m-%d-earth_engine')
         )
         task.start()
 

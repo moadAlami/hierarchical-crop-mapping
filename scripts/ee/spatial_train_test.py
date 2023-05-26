@@ -22,11 +22,13 @@ def split(gdf):
         min_poly = 2
         if gdf.shape[0] == 3:
             min_poly = 1
-        if 0.70 < ratio_1 < 0.85 and subset_2.shape[0] >= min_poly:
+        lower_lim = 0.7
+        upper_lim = 0.8
+        if lower_lim < ratio_1 < upper_lim and subset_2.shape[0] >= min_poly:
             subset_1['TRAIN'] = True
             subset_2['TRAIN'] = False
             cond = True
-        elif 0.70 < ratio_2 < 0.85 and subset_1.shape[0] >= min_poly:
+        elif lower_lim < ratio_2 < upper_lim and subset_1.shape[0] >= min_poly:
             subset_1['TRAIN'] = False
             subset_2['TRAIN'] = True
             cond = True
@@ -34,20 +36,14 @@ def split(gdf):
     return new_gdf
 
 
-# cultures = ['ble tendre', 'orge', 'ble dur', 'avoine', 'colza', 'grenadier', 'oranger', 'pois chiche', 'feverole', 'melon', 'oignon']
-
-# these crops result in an infinite loop
-to_drop = ['betterave', 'feve', 'haricot']
-gdf = gdf.drop(gdf.query('culture.isin(@to_drop)').index)
-
-cultures = gdf.culture.value_counts()[gdf.culture.value_counts() > 2].index
-
+cultures = ['ble tendre', 'orge', 'ble dur', 'avoine', 'colza', 'grenadier', 'oranger', 'pois chiche', 'feverole', 'melon', 'oignon']
 
 d: dict = {}
 for culture in cultures:
     d[culture] = split(gdf.query('culture==@culture'))
 
 full_df = pd.concat([d[i] for i in d])
+
 full_df = full_df.drop('AREA', axis=1)
 out_gdf = r'../../data/gharb_2021_plots_wgs_v2.shp'
 

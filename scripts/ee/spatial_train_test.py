@@ -52,6 +52,6 @@ for culture in cultures:
     test = round(d[culture].query('TRAIN==False').AREA.sum(), 2)
     print(f'{culture}: {train}/{test}')
 
-out_gdf = r'../../data/gharb_2021_plots_wgs_split.shp'
+out_gdf = r'../../data/survey_2021_wgs_split.shp'
 
 full_df.to_file(out_gdf, encoding='utf8')

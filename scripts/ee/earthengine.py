@@ -23,7 +23,7 @@ def main():
     # ee.Authenticate()
     ee.Initialize()
 
-    poly_path = r'../../data/gharb_2021_plots_wgs_v2.shp'
+    poly_path = r'../../data/parcels_2023_wgs_v2.shp'
     poly = gpd.read_file(poly_path, encoding='utf8')
     poly = poly.to_json()
     poly = ee.FeatureCollection(json.loads(poly))
@@ -66,7 +66,7 @@ def main():
             description=filename,
             fileNamePrefix=filename,
             fileFormat='CSV',
-            driveFolder=time.strftime('%Y-%m-%d-earth_engine')
+            driveFolder=f'{time.strftime("%Y-%m-%d")}-earth_engine'
         )
         task.start()
 

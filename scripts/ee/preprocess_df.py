@@ -47,12 +47,12 @@ def main():
     df = pd.concat([df_30stc, df_29squ])
     df = df.reset_index().drop('index', axis=1)
 
-    cultures = ['ble tendre', 'orge', 'ble dur', 'avoine',
-                'colza', 'grenadier', 'oranger',
-                'pois chiche', 'feverole',
-                'melon', 'oignon']
+    # cultures = ['ble tendre', 'orge', 'ble dur', 'avoine',
+    #             'colza', 'grenadier', 'oranger',
+    #             'pois chiche', 'feverole',
+    #             'melon', 'oignon']
 
-    df = df.query('culture.isin(@cultures)')
+    # df = df.query('culture.isin(@cultures)')
 
     band_cols = df.drop(columns=['culture', 'filiere', 'TRAIN']).columns
 

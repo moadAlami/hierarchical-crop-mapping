@@ -1,20 +1,15 @@
 import pandas as pd
 from ml_utils import get_xy
-# from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
+from xgboost import XGBClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 
-
 target_class: str = 'culture'
-df = pd.read_parquet('../data/ee_sampled_pts_df_2021.parquet')
-df = df.drop(df.query('filiere=="maraicheres"').index)
-df = df.query('filiere=="cereales"')
-
+df = pd.read_parquet(f'../data/{target_class}_dataset.parquet')
 
 X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
 classes = label_encoder.classes_
 
-model = SVC()
+model = XGBClassifier()
 model.fit(X_train, y_train)
 
 y_pred = model.predict(X_test)

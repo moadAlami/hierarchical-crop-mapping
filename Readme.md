@@ -30,7 +30,9 @@
  - [X] Train fine crop classifiers
  - [X] For hierarchical_pred, perform a broad class classification, then get the index of each class and apply the appropriate fine classifier. Compare execution time with iterating over each pixel.
  - [X] Automatic train test split that ensures a good ratio of train/test while avoiding spatial autocorrelation.
- - [ ] Figure out how to merge training data from 2021 and 2023.
+ - [ ] Identify the best models for identifying cereal crops using deep learning
+ - [ ] Run `best_model.py` on groups, all crops, specific crops per group
 
 ### Later
+ - [o] Figure out how to merge training data from 2021 and 2023.
  - [ ] Automatic identification of the optimal dates

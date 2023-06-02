@@ -1,7 +1,8 @@
-from keras.layers import Input, Conv1D, Flatten, Dense
-from keras.models import Model
-from keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
+from keras.layers import Input, Conv1D, LSTM, Flatten, Dense, Dropout
+from keras.models import Model
+from keras.optimizers import Adam
+from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from ml_utils import get_xy
 import os
@@ -12,58 +13,46 @@ import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.random.set_seed(9)
 
-df = pd.read_parquet('../data/ee_sampled_pts_df_2021.parquet')
-df = df.query('filiere=="cereales"')
-non_bands = ['filiere', 'culture', 'TRAIN', 'G_TRAIN']
-old_names = df.drop(columns=non_bands).columns.tolist()
-new_names = [f'B{i+1}' for i in range(len(old_names))]
-
-mapper = {}
-for old, new in zip(old_names, new_names):
-    mapper[old] = new
-
-df = df.rename(mapper=mapper, axis=1)
+target_class = 'culture'
+df = pd.read_parquet('../data/culture_dataset.parquet')
+df = df.query('filiere=="cereales"').copy()
 
 NDVI = df.copy()
-for i in range(len(new_names) // 10):
+for i in range(14):
     if i == 0:
         NDVI.loc[NDVI.index, f'V{i+1}'] = (df['B7'] - df['B3']) / (df['B7'] + df['B3'])
     else:
         NDVI.loc[NDVI.index, f'V{i+1}'] = (df[f'B{i}7'] - df[f'B{i}3']) / (df[f'B{i}7'] + df[f'B{i}3'])
 
-ndvi_names = [f'V{i+1}' for i in range(len(new_names) // 10)]
+ndvi_names = [f'V{i+1}' for i in range(14)]
 NDVI = NDVI[ndvi_names]
 NDVI = NDVI.dropna()
-df = df.loc[NDVI.index]
+# bands = [f'B{i+1}' for i in range(140)]
+# df = df.loc[NDVI.index]
 
-merged_df = pd.concat([NDVI, df], axis=1)
+# merged_df = pd.concat([NDVI, df], axis=1)
 
-X_train, X_test, y_train, y_test, label_encoder = get_xy(merged_df, 'culture')
+X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
 classes = label_encoder.classes_
 num_classes = len(classes)
+print(classes)
 
-X_shape = (-1, X_train.shape[1], 1)
+X_shape = (-1, 14, 10)
 X_train = X_train.reshape(X_shape)
 X_test = X_test.reshape(X_shape)
 
 y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
-
-def build_model(x_shape: tuple, num_classes: int):
-    inputs = Input(x_shape)
-    hidden = Conv1D(filters=8, kernel_size=1)(inputs)
-    # hidden = Dropout(.2)(hidden)
-    hidden = Flatten()(hidden)
-    # hidden = Dense(units=32, activation='relu')(hidden)
-    outputs = Dense(units=num_classes, activation='softmax')(hidden)
-    model = Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer='adam',
-                  metrics='categorical_accuracy',
-                  loss='categorical_crossentropy')
-    return model
-
-
-model = build_model(X_train.shape[1:], num_classes)
+inputs = Input((14, 10))
+hidden = Conv1D(filters=128, kernel_size=1, activation='relu')(inputs)
+hidden = Conv1D(filters=256, kernel_size=1, activation='relu')(hidden)
+hidden = Dropout(.4)(hidden)
+hidden = Flatten()(hidden)
+outputs = Dense(units=num_classes, activation='softmax')(hidden)
+model = Model(inputs=inputs, outputs=outputs)
+model.compile(optimizer=Adam(learning_rate=.005, decay=.2),
+              metrics='categorical_accuracy',
+              loss='categorical_crossentropy')
 
 es = EarlyStopping(monitor='val_loss',
                    patience=10,

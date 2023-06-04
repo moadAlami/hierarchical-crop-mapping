@@ -251,6 +251,8 @@ def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict
         broad_class = label_encoders['groups'].inverse_transform(broad_class)[0]
         if broad_class == 'oleagineuses':
             fine_class = 'colza'
+        elif broad_class == 'maraicheres':
+            fine_class = 'melon'
         # elif broad_class == 'cereales':
         #     x_B = x.reshape(-1, 14, 10)
         #     x_VI = (x_B[:, :, 6] - x_B[:, :, 2]) / (x_B[:, :, 6] + x_B[:, :, 2])

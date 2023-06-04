@@ -6,19 +6,23 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pickle
 
-df = pd.read_parquet('../data/ee_sampled_pts_df_2021.parquet')
+df = pd.read_parquet('../data/culture_dataset.parquet')
+df = df.drop(df.query('culture=="avoine"').index)
 
 _, X, _, y, crops_le = get_xy(df=df, target_class='culture')
 
 *_, broad_le = get_xy(df=df, target_class='filiere')
 classes = broad_le.classes_
-clf_groups = pickle.load(open('../models/groups_SVC.pickle', 'rb'))
+clf_groups = pickle.load(open('../models/groups_XGBClassifier.pickle', 'rb'))
 
 label_encoders = {}
 fine_classifiers = {}
-for f in ['arboriculture', 'cereales', 'legumineuses', 'maraicheres']:
+for f in ['fruitiers', 'cereales', 'legumineuses']:
     *_, label_encoders[f] = get_xy(df=df.query('filiere==@f'), target_class='culture')
-    fine_classifiers[f] = pickle.load(open(f'../models/{f}_RandomForestClassifier.pickle', 'rb'))
+
+fine_classifiers['fruitiers'] = pickle.load(open('../models/fruitiers_SVC.pickle', 'rb'))
+fine_classifiers['cereales'] = pickle.load(open('../models/cereales_SVC.pickle', 'rb'))
+fine_classifiers['legumineuses'] = pickle.load(open('../models/legumineuses_RandomForestClassifier.pickle', 'rb'))
 
 label_encoders['groups'] = broad_le
 

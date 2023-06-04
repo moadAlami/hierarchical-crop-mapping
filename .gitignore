@@ -1,2 +1,3 @@
 scripts/scratch.py
 scripts/test_model_ml.py
+__pycache__/

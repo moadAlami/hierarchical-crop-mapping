@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras.callbacks import EarlyStopping
 from keras.layers import Input, Conv1D, Flatten, Dense, Dropout
 from keras.models import Model
@@ -5,12 +7,10 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from ml_utils import get_xy
-import os
 import pandas as pd
 from sklearn.metrics import classification_report, confusion_matrix
 import tensorflow as tf
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.random.set_seed(9)
 
 target_class = 'culture'
@@ -51,10 +51,12 @@ es = EarlyStopping(monitor='val_loss',
 
 history = model.fit(x=X_train, y=y_train,
                     batch_size=512,
-                    epochs=1,
+                    epochs=100,
                     callbacks=[es],
                     validation_data=(X_test, y_test),
                     verbose=0)
+
+# model.save('../models/cereal_dl.h5')
 
 y_true = y_test.argmax(axis=1)
 y_pred = model.predict(X_test, verbose=0).argmax(axis=1)

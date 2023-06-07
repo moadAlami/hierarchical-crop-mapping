@@ -139,7 +139,7 @@ def plot_cm(clf, ax, x_test: np.ndarray, y_test: np.ndarray, labels: list, norma
     if len(labels) == 2:
         avg = 'binary'
     else:
-        avg = 'weighted'
+        avg = 'macro'
     f1 = round(f1_score(y_true=y_test, y_pred=y_pred, average=avg), 2)
     cm = confusion_matrix(y_true=y_test, y_pred=y_pred, normalize=normalize)
     sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, fmt='.2f', square='all',
@@ -273,7 +273,7 @@ def process_combination(args, keys, model, x_train, y_train, x_test, y_test):
     clf = model(**kwargs)
     clf.fit(x_train, y_train)
     y_pred = clf.predict(x_test)
-    f1 = f1_score(y_true=y_test, y_pred=y_pred, average='weighted')
+    f1 = f1_score(y_true=y_test, y_pred=y_pred, average='macro')
     return kwargs, f1
 
 
@@ -343,11 +343,11 @@ def custom_tune_v1(x_train, x_test, y_train, y_test, model, grid_params, verbose
         params.append(kwargs)
         clf.fit(x_train, y_train)
         y_pred = clf.predict(x_test)
-        f1_list.append(f1_score(y_true=y_test, y_pred=y_pred, average='weighted'))
+        f1_list.append(f1_score(y_true=y_test, y_pred=y_pred, average='macro'))
         if verbose:
             print(f'{model_name} | {kwargs}')
         if verbose:
-            print(f'F1-score {f1_score(y_true=y_test, y_pred=y_pred, average="weighted")}\n')
+            print(f'F1-score {f1_score(y_true=y_test, y_pred=y_pred, average="macro")}\n')
     max_f1_index = f1_list.index(max(f1_list))
     print(20 * '-')
     print(f'Best params: {params[max_f1_index]}')

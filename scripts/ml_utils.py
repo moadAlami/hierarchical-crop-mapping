@@ -229,39 +229,38 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     print(f'Done! ({exec_time} seconds)')
 
 
-def hierarchical_pred(x: np.array, broad_classifier: Any, fine_classifiers: Dict[str, Any], label_encoders: Dict[str, LabelEncoder]) -> Tuple[List[str], List[str]]:
+def hierarchical_pred(x: np.array, broad_clf, fine_clf, le) -> Tuple:
     """
     Predicts broad and fine classes for given input data using a hierarchical approach.
 
     Args:
         x: Input array
-        broad_classifier: The broad classifier used for prediction.
-        fine_classifiers: A dictionary of fine classifiers used for prediction, where the keys are the broad class names.
-        label_encoders: A dictionary of label encoders , where the keys are the broad class names.
+        broad_clf: The broad classifier used for prediction.
+        fine_clf: A dictionary of fine classifiers used for prediction, where the keys are the broad class names.
+        le: A dictionary of label encoders , where the keys are the broad class names.
 
     Returns:
         A tuple containing:
-            - List of broad crop classes
-            - List of fine crop classes
+            - broad crop classes
+            - fine crop classes
     """
-    broad_classes = []
-    fine_classes = []
-    for elem in x:
-        broad_class = broad_classifier.predict(elem.reshape(-1, x.shape[1]))
-        broad_class = label_encoders['groups'].inverse_transform(broad_class)[0]
-        if broad_class == 'oleagineuses':
-            fine_class = 'colza'
-        elif broad_class == 'maraicheres':
-            fine_class = 'melon'
-        # elif broad_class == 'cereales':
-        #     x_B = x.reshape(-1, 14, 10)
-        #     x_VI = (x_B[:, :, 6] - x_B[:, :, 2]) / (x_B[:, :, 6] + x_B[:, :, 2])
-        #     fine_class = fine_classifiers[broad_class].predict([x_B, x_VI], verbose=0)
+    broad_classes = broad_clf.predict(x.reshape(-1, x.shape[1]))
+    fine_classes = np.zeros_like(broad_classes)
+    for label in le['groups'].classes_:
+        indices = np.where(broad_classes == le['groups'].transform([label]))
+        if label == 'oleagineuses':
+            fine_classes[indices] = le['crops'].transform(['colza'])
+        elif label == 'maraicheres':
+            fine_classes[indices] = le['crops'].transform(['melon'])
+        elif label == 'cereales':
+            new_shape = (-1, x.shape[1] // 10, 10)
+            initial_labels = fine_clf[label].predict(x[indices].reshape(new_shape), verbose=0)
+            str_labels = le['cereales'].inverse_transform(initial_labels.argmax(axis=1))
+            fine_classes[indices] = le['crops'].transform(str_labels)
         else:
-            fine_class = fine_classifiers[broad_class].predict(elem.reshape(-1, x.shape[1]))
-            fine_class = label_encoders[broad_class].inverse_transform(fine_class)[0]
-        broad_classes.append(broad_class)
-        fine_classes.append(fine_class)
+            initial_labels = fine_clf[label].predict(x[indices])
+            str_labels = le[label].inverse_transform(initial_labels)
+            fine_classes[indices] = le['crops'].transform(str_labels)
     return broad_classes, fine_classes
 
 

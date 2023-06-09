@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, f1_score
 from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.svm import SVC
-from typing import Tuple, List, Any, Dict
+from typing import Tuple, List, Dict
 from xgboost import XGBClassifier
 import time
 
@@ -228,7 +228,7 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
     print(f'Done! ({exec_time} seconds)')
 
 
-def hierarchical_pred(x: np.array, broad_clf, fine_clf, le, cnet: bool) -> Tuple:
+def hierarchical_pred(x: np.array, broad_clf, fine_clf, le: Dict[str, LabelEncoder]) -> Tuple:
     """
     Predicts broad and fine classes for given input data using a hierarchical approach.
 
@@ -251,15 +251,6 @@ def hierarchical_pred(x: np.array, broad_clf, fine_clf, le, cnet: bool) -> Tuple
             fine_classes[indices] = le['crops'].transform(['colza'])
         elif label == 'maraicheres':
             fine_classes[indices] = le['crops'].transform(['melon'])
-        elif label == 'cereales':
-            if cnet:
-                new_shape = (-1, x.shape[1] // 10, 10)
-                initial_labels = fine_clf[label].predict(x[indices].reshape(new_shape), verbose=0)
-                str_labels = le['cereales'].inverse_transform(initial_labels.argmax(axis=1))
-            else:
-                initial_labels = fine_clf[label].predict(x[indices])
-                str_labels = le[label].inverse_transform(initial_labels)
-            fine_classes[indices] = le['crops'].transform(str_labels)
         else:
             initial_labels = fine_clf[label].predict(x[indices])
             str_labels = le[label].inverse_transform(initial_labels)

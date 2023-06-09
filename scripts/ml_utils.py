@@ -100,9 +100,8 @@ def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray,
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    train = 'TRAIN'
     columns_to_drop = ['culture', 'filiere', 'TRAIN']
-    df_train, df_test = df.query(f'{train}==True'), df.query(f'{train}==False')
+    df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
     X_train, y_train = df_train.drop(columns=columns_to_drop).values, df_train[target_class].values
     X_test, y_test = df_test.drop(columns=columns_to_drop).values, df_test[target_class].values
     # scale the data

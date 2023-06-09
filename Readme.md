@@ -25,10 +25,8 @@
 - There is a major problem with 'orge'. Removing raises the accuracy to +90% for 'ble tendre', 'ble dur' and 'avoine'.
     
 ## TODO
- - [ ] Identify the best models for identifying cereal crops using deep learning
 
 ### Later
- - [ ] ~Figure out how to merge training data from 2021 and 2023.~
  - [ ] Automatic identification of the optimal dates
 
 ### Done
@@ -38,3 +36,7 @@
  - [X] For hierarchical_pred, perform a broad class classification, then get the index of each class and apply the appropriate fine classifier. Compare execution time with iterating over each pixel.
  - [X] Automatic train test split that ensures a good ratio of train/test while avoiding spatial autocorrelation.
  - [X] Run `best_model.py` on groups, all crops, specific crops per group
+ 
+ ### Dead end
+ - [ ] ~Figure out how to merge training data from 2021 and 2023.~
+ - [ ] ~Identify the best models for identifying cereal crops using deep learning~

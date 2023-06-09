@@ -25,6 +25,7 @@
 - There is a major problem with 'orge'. Removing raises the accuracy to +90% for 'ble tendre', 'ble dur' and 'avoine'.
     
 ## TODO
+- [ ] Migrate from loading files with geopandas to pickle (load first with pyogrio)
 
 ### Later
  - [ ] Automatic identification of the optimal dates

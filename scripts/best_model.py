@@ -2,20 +2,21 @@ from ml_utils import pipeline_gridsearch
 import pandas as pd
 
 
-df_filiere_path = '../data/filiere_dataset.parquet'
-df_filiere = pd.read_parquet(df_filiere_path)
-df_filiere['culture'] = None
+df = pd.read_parquet('../data/culture_dataset_v2.parquet')
+df = df.dropna()
+to_drop = ['olivier', 'grenadier']
+df = df.drop(df.query('culture.isin(@to_drop)').index)
 
-pipeline_gridsearch(df=df_filiere, target_class='filiere')
+groups = []
+for group in df.filiere.unique():
+    crops = df.query('filiere==@group').culture.unique()
+    if len(crops) > 1:
+        groups.append(group)
 
-df_culture_path = '../data/culture_dataset.parquet'
-df_culture = pd.read_parquet(df_culture_path)
-df_culture = df_culture.drop(df_culture.query('culture=="avoine"').index)
+pipeline_gridsearch(df=df, target_class='filiere')
 
-
-groups = ['cereales', 'fruitiers', 'legumineuses']
 for group in groups:
-    group_df = df_culture.query(f'filiere=="{group}"')
+    group_df = df.query(f'filiere=="{group}"')
     pipeline_gridsearch(df=group_df, target_class='culture')
 
-pipeline_gridsearch(df=df_culture, target_class='culture')
+pipeline_gridsearch(df=df, target_class='culture')

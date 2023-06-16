@@ -1,9 +1,10 @@
+import geopandas as gpd
 import pandas as pd
 from pyogrio import read_dataframe
 import pickle
 
 poly = read_dataframe('/home/mouad/SSD/College/PhD/missions/2021/06-02-21/shp/preprocessed/parcelles.shp')
-to_drop = ['tomate', 'betterave', 'oignon']
+to_drop = ['tomate', 'betterave', 'oignon', 'olivier', 'grenadier']
 poly = poly.drop(poly.query('culture.isin(@to_drop)').index)
 pts = read_dataframe('/home/mouad/SSD/College/PhD/missions/2021/06-02-21/shp/preprocessed/pixels.shp')
 
@@ -12,7 +13,7 @@ def split(geodataframe, target):
     d = {}
     for t in geodataframe[target].unique():
         d[t] = geodataframe[geodataframe[target] == t]
-        print(t, d[t].COUNT.sum())
+        # print(t, d[t].COUNT.sum())
         cond = False
         attempts = 0
         while not cond:
@@ -39,14 +40,12 @@ def split(geodataframe, target):
 
 
 poly = split(poly, 'culture').drop('COUNT', axis=1)
-['colza' 'avoine' 'agrumes' 'ble tendre' 'feverole' 'melon' 'grenadier'
- 'pois chiche' 'ble dur' 'orge' 'olivier']
 
 
 def find_class(key: str) -> str:
     hierarchy = {'oleagineux': ['colza'],
                  'cereales': ['avoine', 'ble tendre', 'ble dur', 'orge'],
-                 'arboriculture': ['agrumes', 'grenadier', 'olivier'],
+                 'arboriculture': ['agrumes'],
                  'legumineux': ['feverole', 'pois chiche'],
                  'maraicheres': ['melon']}
     for class_key, class_value in hierarchy.items():
@@ -55,9 +54,21 @@ def find_class(key: str) -> str:
     return 'Not found'
 
 
-poly['filiere'] = 'xd'
+poly['filiere'] = 'OTHER'
 for culture in poly.culture.unique():
     poly.loc[poly.query('culture == @culture').index, 'filiere'] = find_class(culture)
 
-print(poly.filiere.unique())
 pickle.dump(poly, open('../data/parcelles_v2.pickle', 'wb'))
+
+gdf = gpd.sjoin(pts, poly, how='left').drop('index_right', axis=1)
+df = gdf.drop('geometry', axis=1)
+bands = [f'B{i+1}' for i in range(140)]
+for band in bands:
+    df[band] = df[band].astype('int16')
+
+vis = [f'V{i+1}' for i in range(14)]
+for vi in vis:
+    df[vi] = df[vi].astype('float32')
+
+df = df.dropna()
+df.to_parquet('../data/culture_dataset_v2.parquet')

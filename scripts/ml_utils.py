@@ -247,10 +247,12 @@ def hierarchical_pred(x: np.array, broad_clf, fine_clf, le: Dict[str, LabelEncod
     fine_classes = np.zeros_like(broad_classes)
     for label in le['groups'].classes_:
         indices = np.where(broad_classes == le['groups'].transform([label]))
-        if label == 'oleagineuses':
+        if label == 'oleagineux':
             fine_classes[indices] = le['crops'].transform(['colza'])
         elif label == 'maraicheres':
             fine_classes[indices] = le['crops'].transform(['melon'])
+        elif label == 'arboriculture':
+            fine_classes[indices] = le['crops'].transform(['agrumes'])
         else:
             initial_labels = fine_clf[label].predict(x[indices])
             str_labels = le[label].inverse_transform(initial_labels)

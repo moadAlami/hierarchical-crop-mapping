@@ -1,7 +1,8 @@
 from ml_utils import pipeline_gridsearch
 import pandas as pd
 
-df = pd.read_parquet('../data/culture_dataset_v2.parquet')
+df = pd.read_parquet('../data/culture_dataset.parquet')
+df = df.drop(df.query('culture=="olivier"').index)
 df = df.dropna()
 
 groups = []

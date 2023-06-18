@@ -1,80 +1,78 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-from ml_utils import get_xy
-from sklearn.metrics import classification_report, confusion_matrix
-import pandas as pd
-from keras.layers import Input, Conv1D, Dense, Flatten, Dropout, concatenate, BatchNormalization
-from keras.models import Model
-from keras.utils import to_categorical
-from keras.optimizers import Adam
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from keras.callbacks import EarlyStopping
+from keras.layers import Input, Conv1D, Dense, Flatten
+from keras.models import Model
+from keras.optimizers import Adam
+from keras.regularizers import l2
+from keras.utils import to_categorical
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import RobustScaler, LabelEncoder
 import matplotlib.pyplot as plt
-import tensorflow as tf
+import pandas as pd
 import random
+import tensorflow as tf
 
-tf.random.set_seed(99)
-random.seed(99)
+seed = 99
+tf.random.set_seed(seed)
+random.seed(seed)
 
 df = pd.read_parquet('../data/culture_dataset_v2.parquet')
-df = df.query('filiere=="cereales"')
+le = LabelEncoder()
+le.fit(df.query('filiere=="cereales"')['culture'])
+num_classes = len(le.classes_)
+df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
 
-X_train, X_test, y_train, y_test, le = get_xy(df, 'culture')
+vis = [f'V{i+1}' for i in range(14)]
+bands = [f'B{i+1}' for i in range(140)]
+predictor = vis
+if predictor == bands:
+    shape = (-1, len(bands) // 10, 10)
+elif predictor == vis:
+    shape = (-1, len(vis), 1)
 
-ndvi_train = X_train[:, :14].reshape(-1, 14, 1)
-ndvi_test = X_test[:, :14].reshape(-1, 14, 1)
+scaler = RobustScaler()
+X_train, X_test = df_train[predictor].values, df_test[predictor].values
+scaler.fit(X_train)
+X_train = df_train.query('filiere=="cereales"')[predictor].values
+X_train = scaler.transform(X_train).reshape(shape)
+X_test = df_test.query('filiere=="cereales"')[predictor].values
+X_test = scaler.transform(X_test).reshape(shape)
 
-X_train = X_train[:, 14:].reshape(-1, 14, 10)
-X_test = X_test[:, 14:].reshape(-1, 14, 10)
+y_train = le.transform(df_train.query('filiere=="cereales"')['culture'])
+y_train = to_categorical(y_train)
+y_test = le.transform(df_test.query('filiere=="cereales"')['culture'])
+y_test = to_categorical(y_test)
 
-y_train, y_test = to_categorical(y_train), to_categorical(y_test)
-target_names = le.classes_
-dropout = .2
-kernel_size = 1
-ndvi_inputs = Input((14, 1))
-ndvi_branch = Conv1D(filters=16, kernel_size=kernel_size, activation='relu')(ndvi_inputs)
-ndvi_branch = Dropout(dropout)(ndvi_branch)
-ndvi_branch = Conv1D(filters=8, kernel_size=kernel_size, activation='relu')(ndvi_branch)
+es = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True, verbose=1)
+optimizer = Adam(decay=0.2, learning_rate=0.005)
 
-xs_inputs = Input((14, 10))
-xs_branch = Conv1D(filters=16, kernel_size=kernel_size, activation='relu')(xs_inputs)
-xs_branch = Dropout(dropout)(xs_branch)
-xs_branch = Conv1D(filters=8, kernel_size=kernel_size, activation='relu')(xs_branch)
-xs_branch = BatchNormalization()(xs_branch)
+inputs = Input(shape[1:])
 
-X = concatenate([ndvi_branch, xs_branch], axis=1)
-X = Flatten()(X)
-X = Dense(units=16, activation='relu')(X)
-X = Dropout(.3)(X)
-X = Dense(units=8, activation='relu')(X)
-outputs = Dense(units=len(target_names), activation='softmax')(X)
-model = Model(inputs=[ndvi_inputs, xs_inputs], outputs=outputs)
+hidden = Conv1D(filters=32, kernel_size=3, activation='relu', strides=1, padding='valid',)(inputs)
+hidden = Flatten()(hidden)
+hidden = Dense(units=16, activation='relu', kernel_regularizer=l2(0.005))(hidden)
+hidden = Dense(units=16, activation='relu', kernel_regularizer=l2(0.005))(hidden)
 
-metrics = ['Recall', 'Precision']
-model.compile(optimizer=Adam(learning_rate=.005, decay=.2),
-              metrics=metrics,
-              loss='categorical_crossentropy')
-
-es = EarlyStopping(monitor='val_loss',
-                   patience=10,
-                   mode='min',
-                   restore_best_weights=True,
-                   verbose=1)
-
-history = model.fit(x=[ndvi_train, X_train], y=y_train,
-                    batch_size=512,
-                    epochs=100,
+outputs = Dense(units=num_classes, activation='softmax')(hidden)
+model = Model(inputs=inputs, outputs=outputs)
+model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', 'Precision', 'Recall'])
+history = model.fit(x=X_train, y=y_train,
+                    batch_size=256,
+                    epochs=200,
+                    callbacks=es,
                     shuffle=True,
-                    callbacks=[es],
-                    validation_data=([ndvi_test, X_test], y_test),
+                    validation_data=(X_test, y_test),
                     verbose=0)
+# model.save('../models/cereales_dl.h5')
 
-y_true = y_test.argmax(axis=1)
-y_pred = model.predict([ndvi_test, X_test], verbose=0).argmax(axis=1)
+y_test = y_test.argmax(axis=1)
+y_pred = model.predict(X_test, verbose=1).argmax(axis=1)
 
-print(classification_report(y_true=y_true, y_pred=y_pred, target_names=target_names))
-print(confusion_matrix(y_true=y_true, y_pred=y_pred))
+print(classification_report(y_true=y_test, y_pred=y_pred, target_names=le.classes_))
+print(confusion_matrix(y_true=y_test, y_pred=y_pred))
 
-scores = ['recall', 'precision', 'loss']
+scores = ['recall', 'precision', 'accuracy', 'loss']
 fig, axs = plt.subplots(1, len(scores), figsize=(12, 5))
 c = 0
 for score in scores:

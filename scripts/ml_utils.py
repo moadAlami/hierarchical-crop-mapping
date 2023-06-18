@@ -13,6 +13,7 @@ from sklearn.preprocessing import LabelEncoder, RobustScaler
 from sklearn.svm import SVC
 from typing import Tuple, List, Dict
 from xgboost import XGBClassifier
+from sklearn.tree import DecisionTreeClassifier
 import time
 
 
@@ -84,7 +85,7 @@ def ndvi_plot(ndvi: pd.DataFrame, target_class: str, dates: list):
     # plt.tight_layout()
 
 
-def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
+def get_xy(features: List, df: pd.DataFrame, target_class: str = 'culture', group_name: str = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
     """
      Preprocesses a given pandas DataFrame and returns the features and labels of the training and test sets.
 
@@ -100,13 +101,15 @@ def get_xy(df: pd.DataFrame, target_class: str = 'culture') -> Tuple[np.ndarray,
          - y_test (numpy.ndarray): The labels of the test set.
          - label_encoder (sklearn.preprocessing.LabelEncoder): The label encoder object used to encode the classes.
      """
-    columns_to_drop = ['culture', 'filiere', 'TRAIN']
     df_train, df_test = df.query('TRAIN==True'), df.query('TRAIN==False')
-    X_train, y_train = df_train.drop(columns=columns_to_drop).values, df_train[target_class].values
-    X_test, y_test = df_test.drop(columns=columns_to_drop).values, df_test[target_class].values
-    # scale the data
     scaler = RobustScaler()
-    X_train = scaler.fit_transform(X_train)
+    scaler.fit(df_train[features].values)
+    if group_name:
+        df_train, df_test = df_train.query('filiere==@group_name'), df_test.query('filiere==@group_name')
+    X_train, y_train = df_train[features].values, df_train[target_class].values
+    X_test, y_test = df_test[features].values, df_test[target_class].values
+    # scale the data
+    X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
     # encode the classes
     label_encoder = LabelEncoder()
@@ -171,7 +174,7 @@ def plot_feature_importances(clf, feature_names: List[str], ax) -> None:
     ax.set_title(f"Top {k} feature importances")
 
 
-def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
+def pipeline_gridsearch(features: List, df: pd.DataFrame, target_class: str = 'culture', group_name: str = None):
     start = time.time()
     root_path = os.path.abspath('../')
     # if input(f'Save models in figures in {root_path}/ (y/N)') in ["N", ""]:
@@ -182,15 +185,18 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
             os.mkdir(dir_path)
     if target_class == 'filiere':
         group = 'groups'
-    elif df.filiere.unique().shape[0] == 1:
-        group = df.filiere.unique()[0]
+    elif group_name:
+        group = group_name
     else:
         group = 'crops'
     print(f'Processing {group}..')
-    X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
+    X_train, X_test, y_train, y_test, label_encoder = get_xy(features=features,
+                                                             df=df,
+                                                             target_class=target_class,
+                                                             group_name=group_name)
     classes = label_encoder.classes_
     # best classifiers
-    classifiers = [SVC, RandomForestClassifier, XGBClassifier]
+    classifiers = [SVC, RandomForestClassifier, XGBClassifier, DecisionTreeClassifier]
     param_rf = {'n_estimators': [10, 25, 50, 100],
                 'criterion': ['gini', 'entropy'],
                 'max_depth': [5, 10, 15, 20, 25, None],
@@ -205,7 +211,12 @@ def pipeline_gridsearch(df: pd.DataFrame, target_class: str = 'culture'):
                  'colsample_bytree': [0.6, 0.8, 1.0],
                  'max_depth': [3, 4, 5],
                  'random_state': [1]}
-    param_grids = [param_svm, param_rf, param_xgb]
+    param_dt = {'criterion': ['gini', 'entropy'],
+                'max_depth': [None, 5, 10],
+                'min_samples_split': [2, 5, 10],
+                'min_samples_leaf': [1, 2, 5],
+                'random_state': [1]}
+    param_grids = [param_svm, param_rf, param_xgb, param_dt]
     fig, axs = plt.subplots(1, len(classifiers), figsize=(16, 6))
     for classifier, param_grid in zip(classifiers, param_grids):
         if classifier == XGBClassifier:

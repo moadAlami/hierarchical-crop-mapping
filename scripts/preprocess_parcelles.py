@@ -4,7 +4,9 @@ from pyogrio import read_dataframe
 import pickle
 
 poly = read_dataframe('/home/mouad/SSD/College/PhD/missions/2021/06-02-21/shp/preprocessed/parcelles.shp')
-to_drop = ['tomate', 'betterave', 'oignon', 'olivier', 'grenadier']
+
+# eliminated because there are less than 100 pixels for testing
+to_drop = ['tomate', 'betterave', 'oignon']
 poly = poly.drop(poly.query('culture.isin(@to_drop)').index)
 pts = read_dataframe('/home/mouad/SSD/College/PhD/missions/2021/06-02-21/shp/preprocessed/pixels.shp')
 
@@ -13,7 +15,6 @@ def split(geodataframe, target):
     d = {}
     for t in geodataframe[target].unique():
         d[t] = geodataframe[geodataframe[target] == t]
-        # print(t, d[t].COUNT.sum())
         cond = False
         attempts = 0
         while not cond:
@@ -45,7 +46,8 @@ poly = split(poly, 'culture').drop('COUNT', axis=1)
 def find_class(key: str) -> str:
     hierarchy = {'oleagineux': ['colza'],
                  'cereales': ['avoine', 'ble tendre', 'ble dur', 'orge'],
-                 'arboriculture': ['agrumes'],
+                 # 'arboriculture': ['agrumes'],
+                 'arboriculture': ['agrumes', 'olivier', 'grenadier'],
                  'legumineux': ['feverole', 'pois chiche'],
                  'maraicheres': ['melon']}
     for class_key, class_value in hierarchy.items():
@@ -58,7 +60,7 @@ poly['filiere'] = 'OTHER'
 for culture in poly.culture.unique():
     poly.loc[poly.query('culture == @culture').index, 'filiere'] = find_class(culture)
 
-pickle.dump(poly, open('../data/parcelles_v2.pickle', 'wb'))
+pickle.dump(poly, open('../data/parcelles.pickle', 'wb'))
 
 gdf = gpd.sjoin(pts, poly, how='left').drop('index_right', axis=1)
 df = gdf.drop('geometry', axis=1)
@@ -71,4 +73,4 @@ for vi in vis:
     df[vi] = df[vi].astype('float32')
 
 df = df.dropna()
-df.to_parquet('../data/culture_dataset_v2.parquet')
+df.to_parquet('../data/culture_dataset.parquet')

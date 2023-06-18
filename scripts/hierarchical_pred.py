@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 import pickle
 
-df_path = '../data/culture_dataset_v2.parquet'
+df_path = '../data/culture_dataset.parquet'
 df = pd.read_parquet(df_path)
+df = df.drop(df.query('culture=="olivier"').index)
 
 le_broad = LabelEncoder()
 df['filiere'] = le_broad.fit_transform(df['filiere'])
@@ -32,11 +33,11 @@ X_test = scaler.transform(X_test)
 
 
 y_broad_train, y_broad_test = df_train['filiere'], df_test['filiere']
-broad_clf = pickle.load(open('../models/groups_SVC.pickle', 'rb'))
+broad_clf = pickle.load(open('../models/groups_XGBClassifier.pickle', 'rb'))
 y_broad_pred = broad_clf.predict(X_test)
 
 y_fine_train, y_fine_test = df_train['culture'], df_test['culture']
-flat_clf = pickle.load(open('../models/crops_SVC.pickle', 'rb'))
+flat_clf = pickle.load(open('../models/crops_XGBClassifier.pickle', 'rb'))
 y_fine_pred_flat = flat_clf.predict(X_test)
 
 fine_clfs = {}
@@ -64,9 +65,13 @@ for broad_class in set(y_broad_train):
 
         model = load_model('../models/cereales_dl.h5')
         fine_clfs[str_broad_class] = model
-    else:
+    if str_broad_class == 'legumineux':
         fine_clf = pickle.load(open('../models/legumineux_SVC.pickle', 'rb'))
         fine_clfs[str_broad_class] = fine_clf
+    elif str_broad_class == 'arboriculture':
+        fine_clf = pickle.load(open('../models/arboriculture_RandomForestClassifier.pickle', 'rb'))
+        fine_clfs[str_broad_class] = fine_clf
+
     fine_les[broad_class] = fine_le
 
 
@@ -78,8 +83,6 @@ for broad_pred in set(y_broad_pred):
         y_fine_pred[indices] = le_crops.transform(['colza'])
     elif str_broad_class == 'maraicheres':
         y_fine_pred[indices] = le_crops.transform(['melon'])
-    elif str_broad_class == 'arboriculture':
-        y_fine_pred[indices] = le_crops.transform(['agrumes'])
     else:
         fine_clf = fine_clfs[str_broad_class]
         fine_le = fine_les[broad_pred]
@@ -91,10 +94,9 @@ for broad_pred in set(y_broad_pred):
         y_decoded_pred = fine_le.inverse_transform(y_initial_pred)
         y_fine_pred[indices] = le_crops.transform(y_decoded_pred)
 
-# print('Broad')
-# print(classification_report(y_true=y_broad_test, y_pred=y_broad_pred, target_names=le_broad.classes_))
+print('Broad')
+print(classification_report(y_true=y_broad_test, y_pred=y_broad_pred, target_names=le_broad.classes_))
 print('Hierarchical')
 print(classification_report(y_true=y_fine_test, y_pred=y_fine_pred, target_names=le_crops.classes_))
-# print(confusion_matrix(y_true=y_fine_test, y_pred=y_fine_pred))
-# print('Flat')
-# print(classification_report(y_true=y_fine_test, y_pred=y_fine_pred_flat, target_names=le_crops.classes_))
+print('Flat')
+print(classification_report(y_true=y_fine_test, y_pred=y_fine_pred_flat, target_names=le_crops.classes_))

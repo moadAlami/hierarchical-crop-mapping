@@ -1,22 +1,21 @@
-import pandas as pd
 from ml_utils import get_xy
-# from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-# from xgboost import XGBClassifier
+import pandas as pd
+import pickle
 from sklearn.metrics import classification_report, confusion_matrix
 
 target_class: str = 'culture'
-df = pd.read_parquet(f'../data/{target_class}_dataset.parquet')
-df = df.query('filiere=="cereales"')
-df = df.drop(df.query('culture=="avoine"').index)
+df = pd.read_parquet('../data/culture_dataset.parquet')
+df = df.drop(df.query('culture=="olivier"').index)
 
-X_train, X_test, y_train, y_test, label_encoder = get_xy(df, target_class)
-classes = label_encoder.classes_
+vis = [f'V{i+1}' for i in range(14)]
 
-model = SVC()
-model.fit(X_train, y_train)
+X_train, X_test, y_train, y_test, le = get_xy(df=df, features=vis, group_name='cereales')
+classes = le.classes_
 
-y_pred = model.predict(X_test)
+clfs = ['DecisionTreeClassifier', 'RandomForestClassifier', 'SVC', 'XGBClassifier']
 
-print(classification_report(y_true=y_test, y_pred=y_pred, target_names=classes))
-print(confusion_matrix(y_true=y_test, y_pred=y_pred))
+for clf_name in clfs:
+    clf = pickle.load(open(f'../models/cereales_{clf_name}.pickle', 'rb'))
+    y_pred = clf.predict(X_test)
+    print(clf_name)
+    print(classification_report(y_true=y_test, y_pred=y_pred, target_names=classes))

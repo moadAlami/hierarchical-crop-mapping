@@ -67,7 +67,10 @@ def ndvi_plot(ndvi: pd.DataFrame, target_class: str, dates: list):
         None
     """
     plt.clf()
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    plt.rcParams['font.family'] = 'Linux Libertine'
+    plt.rcParams['font.size'] = 12
+    fig, ax = plt.subplots()
     labels = ndvi[f'{target_class}'].unique().tolist()
     for label in labels:
         df = ndvi[ndvi[f'{target_class}'] == label].median(numeric_only=True)
@@ -77,10 +80,11 @@ def ndvi_plot(ndvi: pd.DataFrame, target_class: str, dates: list):
         ax.scatter(x, y, marker='x')
     ax.set(ylabel='NDVI')
     ax.set_xticks([i for i in range(14)])
-    ax.set_xticklabels(dates, rotation=90)
+    ax.set_xticklabels(dates, rotation=45)
     Line, Label = ax.get_legend_handles_labels()
-    fig.legend(Line, Label, loc='lower right',
-               bbox_to_anchor=(1.05, 0.15),
+    # Label = ['Avoine', 'Blé tendre', 'Blé dur', 'Orge']
+    fig.legend(Line, Label, loc='upper right',
+               bbox_to_anchor=(1.15, 0.70),
                fontsize=12)
     # plt.tight_layout()
 

@@ -1,7 +1,7 @@
 from ml_utils import get_xy
 import pandas as pd
 import pickle
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 
 target_class: str = 'culture'
 df = pd.read_parquet('../data/culture_dataset.parquet')

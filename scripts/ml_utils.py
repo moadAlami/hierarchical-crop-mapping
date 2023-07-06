@@ -89,7 +89,7 @@ def ndvi_plot(ndvi: pd.DataFrame, target_class: str, dates: list):
     # plt.tight_layout()
 
 
-def get_xy(features: List, df: pd.DataFrame, target_class: str = 'culture', group_name: str = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder]:
+def get_xy(features: List, df: pd.DataFrame, target_class: str = 'culture', group_name: str = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, LabelEncoder, RobustScaler]:
     """
      Preprocesses a given pandas DataFrame and returns the features and labels of the training and test sets.
 
@@ -119,7 +119,7 @@ def get_xy(features: List, df: pd.DataFrame, target_class: str = 'culture', grou
     label_encoder = LabelEncoder()
     y_train = label_encoder.fit_transform(y_train)
     y_test = label_encoder.transform(y_test)
-    return X_train, X_test, y_train, y_test, label_encoder
+    return X_train, X_test, y_train, y_test, label_encoder, scaler
 
 
 def plot_cm(clf, ax, x_test: np.ndarray, y_test: np.ndarray, labels: list, normalize: str = None) -> None:

@@ -63,6 +63,14 @@ final_pred = final_pred.reshape(1, height, width)
 final_confid = y_confidence.reshape(height, width, 1).transpose(2, 0, 1)[0]
 final_confid = final_confid.reshape(1, height, width)
 
+final_broad = y_broad_pred.reshape(height, width, 1).transpose(2, 0, 1)[0]
+final_broad = final_broad.reshape(1, height, width)
+
+meta.update(count=1, dtype=str(final_broad.dtype))
+output_path = '../output/broad.tif'
+with rio.open(output_path, 'w', **meta) as dst:
+    dst.write(final_broad)
+
 meta.update(count=1, dtype=str(final_pred.dtype))
 output_path = '../output/prediction.tif'
 with rio.open(output_path, 'w', **meta) as dst:

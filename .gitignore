@@ -1,3 +1,5 @@
 scripts/scratch.py
 scripts/test_model_ml.py
+data/ndvi*
+output/
 __pycache__/

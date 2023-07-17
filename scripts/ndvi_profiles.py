@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 dataframe = pd.read_parquet('../data/culture_dataset.parquet')
-dataframe = dataframe.dropna().drop(dataframe.query('culture=="olivier"').index).drop('TRAIN', axis=1)
+dataframe = dataframe.drop('TRAIN', axis=1)
 
 dates = ['2020-12-22',
          '2020-12-27',
